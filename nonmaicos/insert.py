@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
 
-import enum
-from trace import Trace
 import MDAnalysis as mda
 import numpy as np
-from regex import P
 from tqdm import tqdm
-
-import matplotlib.pyplot as plt
 
 def pos_random(InsertionDomain):
     return np.array(np.random.rand(3)*(InsertionDomain[3:6] - InsertionDomain[0:3]) + InsertionDomain[0:3], dtype=np.float32)
