@@ -18,8 +18,9 @@ def empty(dimensions):
 def spce():
 
     l_1 = 1
-    q_O = -0.8476
-    q_H = q_O / 2
+    
+    q_H = 0.4238
+    q_O = - 2* q_O
     theta = np.deg2rad(109.47)
 
     return type_a(l_1, q_O, q_H, theta)
@@ -31,7 +32,7 @@ def tip4p_epsilon():
     l_2 = 0.105
 
     q_H = 0.5270
-    q_M = -1.054
+    q_M = - 2* q_H
 
     theta = np.deg2rad(104.52)
 
@@ -51,6 +52,8 @@ def type_a(l_1, q_O, q_H, theta):
     model.add_TopologyAttr('resid', [1])
     model.add_TopologyAttr('segid', ['SOL'])
     model.add_TopologyAttr('charges', [q_O, q_H, q_H])
+    model.add_TopologyAttr('masses', [15.999, 1.00784, 1.00784])
+    model.add_TopologyAttr('bonds', [(0,1),(0,2)])
 
     pos_O = np.array([ 0,        0,       0      ], dtype=np.float32)
     pos_H1 = pos_O + np.array([ 0,        l_1,       0      ], dtype=np.float32)
@@ -65,7 +68,7 @@ def type_c(l_1, l_2, q_M, q_H, theta):
 
     model = mda.Universe.empty(4,
                             n_residues=1,
-                            atom_resindex=[0,0,0],
+                            atom_resindex=[0,0,0,0],
                             residue_segindex=[0],
                             trajectory=True)
 
@@ -75,7 +78,8 @@ def type_c(l_1, l_2, q_M, q_H, theta):
     model.add_TopologyAttr('resid', [1])
     model.add_TopologyAttr('segid', ['SOL'])
     model.add_TopologyAttr('charges', [0, q_H, q_H, q_M])
-
+    model.add_TopologyAttr('masses', [15.999, 1.00784, 1.00784, 0])
+    model.add_TopologyAttr('bonds', [(0,1),(0,2)])
 
     pos_O = np.array([ 0,        0,       0      ], dtype=np.float32)
     pos_H1 = pos_O + np.array([ 0,        l_1,       0      ], dtype=np.float32)
