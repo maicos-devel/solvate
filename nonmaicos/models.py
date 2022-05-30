@@ -20,7 +20,7 @@ def spce():
     l_1 = 1
     
     q_H = 0.4238
-    q_O = - 2* q_O
+    q_O = - 2* q_H
     theta = np.deg2rad(109.47)
 
     return type_a(l_1, q_O, q_H, theta)
