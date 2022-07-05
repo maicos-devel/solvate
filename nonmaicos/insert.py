@@ -12,14 +12,12 @@ def pos_random(InsertionDomain):
 def rot_random():
     u_1, u_2, u_3 = np.random.rand(3)
 
-    theta = np.arccos(2 * u_1 - 1)
-    phi = 2 * np.pi * u_2
+    theta, phi = np.arccos(2 * u_1 - 1), 2 * np.pi * u_2
 
-    x = np.sin(theta) * np.cos(phi)
-    y = np.sin(theta) * np.sin(phi)
-    z = np.cos(theta)
+    rot_vec = np.array([np.sin(theta) * np.cos(phi),
+                        np.sin(theta) * np.sin(phi),
+                        np.cos(theta)])
 
-    rot_vec = [x, y, z]
     rot_angle = 360 * u_3
 
     return rot_angle, rot_vec
@@ -50,7 +48,6 @@ def InsertPlanar(TargetUniverse,
     ProjectileUniverse.atoms.translate(
         -ProjectileUniverse.atoms.center_of_geometry())
 
-   
     if TargetUniverse.atoms.n_atoms == 0:
             TargetUniverse = ProjectileUniverse.copy()
             TargetUniverse.dimensions = dimensionsTarget
@@ -72,13 +69,16 @@ def InsertPlanar(TargetUniverse,
         ns = mda.lib.NeighborSearch.AtomNeighborSearch(target)
 
         for attempt in range(tries):
-            projectile.rotateby(*rot_random())
             projectile.translate(
                 pos_random(InsertionDomain)
                 - projectile.atoms.center_of_geometry())
 
+            projectile.rotateby(*rot_random())
+            
             if len(ns.search(projectile,distance)) == 0:
                 break
+
+
         else:
             raise RuntimeError("Error: No suitable position found,\
                 maybe you are trying to insert to many particles? Aborting.")
