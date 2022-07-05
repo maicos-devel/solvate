@@ -9,5 +9,6 @@ __author__ = 'Henrik Jaeger'
 __credits__ = 'ICP, Uni Stuttgart'
 
 
-from .insert import InsertPlanar, InsertCylinder
+from .insert import InsertPlanar, InsertCylinder, InsertSphere
 from . import models
+
