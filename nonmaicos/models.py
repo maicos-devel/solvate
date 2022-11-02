@@ -48,9 +48,13 @@ def tip4p_epsilon():
 def type_a(l_1, q_O, q_H, theta):
 
     model = mda.Universe.empty(
-        3, n_residues=1, atom_resindex=[0, 0, 0], residue_segindex=[0], trajectory=True
+        3,
+        n_residues=1,
+        atom_resindex=[0, 0, 0],
+        residue_segindex=[0],
+        trajectory=True
     )
-
+    
     model.add_TopologyAttr("name", ["OW", "HW1", "HW2"])
     model.add_TopologyAttr("type", ["O", "H", "H"])
     model.add_TopologyAttr("resname", ["SOL"])
@@ -59,16 +63,17 @@ def type_a(l_1, q_O, q_H, theta):
     model.add_TopologyAttr("charges", [q_O, q_H, q_H])
     model.add_TopologyAttr("masses", [15.999, 1.00784, 1.00784])
     model.add_TopologyAttr("bonds", [(0, 1), (0, 2)])
-
+    model.add_TopologyAttr("angles", [(1, 0, 2)])
+    
     pos_O = np.array([0, 0, 0], dtype=np.float32)
     pos_H1 = pos_O + np.array([0, l_1, 0], dtype=np.float32)
     pos_H2 = pos_O + np.array(
         [l_1 * np.cos(theta - np.pi / 2), l_1 * np.sin(theta - np.pi / 2), 0],
         dtype=np.float32,
     )
-
+    
     model.atoms.positions = np.array([pos_O, pos_H1, pos_H2])
-
+    
     return model
 
 
@@ -90,6 +95,7 @@ def type_c(l_1, l_2, q_M, q_H, theta):
     model.add_TopologyAttr("charges", [0, q_H, q_H, q_M])
     model.add_TopologyAttr("masses", [15.999, 1.00784, 1.00784, 0])
     model.add_TopologyAttr("bonds", [(0, 1), (0, 2)])
+    model.add_TopologyAttr("angles", [(1, 0, 2)])
 
     pos_O = np.array([0, 0, 0], dtype=np.float32)
     pos_H1 = pos_O + np.array([0, l_1, 0], dtype=np.float32)
@@ -98,7 +104,8 @@ def type_c(l_1, l_2, q_M, q_H, theta):
         dtype=np.float32,
     )
     pos_M = pos_O + np.array(
-        [l_2 * np.cos(np.pi / 2 - theta / 2), l_2 * np.sin(np.pi / 2 - theta / 2), 0],
+        [l_2 * np.cos(np.pi / 2 - theta / 2),
+         l_2 * np.sin(np.pi / 2 - theta / 2), 0],
         dtype=np.float32,
     )
 
