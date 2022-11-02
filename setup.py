@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
   name="nonmaicos",
-  version="0.0.2",
+  version="0.0.3",
   packages=["nonmaicos"],
   install_requires=[
    'MDAnalysis>=2.0.0',
