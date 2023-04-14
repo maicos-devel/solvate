@@ -1,0 +1,94 @@
+[build-system]
+# These are the assumed default build requirements from pip:
+# https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
+requires = [
+    "setuptools>=43.0.0",
+    "setuptools-git-versioning<2",
+    "versioneer[toml]",
+    "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nonmaicos"
+description = "Quickly build confined geometries for MD simulations"
+authors = [{name = "MAICoS Developer Team"}]
+maintainers = [
+    {name = "Henrik Jaeger"},
+]
+readme = "README.rst"
+requires-python = ">=3.8"
+keywords = ["Science", "Molecular Dynamics", "Confined Systems", "MDAnalysis"]
+license = {text = "GPL-3.0-or-later"}
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "mdacli>=0.1.12",
+    "MDAnalysis>=2.2.0",
+    "numpy>=1.20.0",
+    "scipy>=1.0.0",
+    "tqdm>=4.60.0",
+]
+dynamic = ["version"]
+
+#[project.urls]
+#homepage = "https://www.maicos-analysis.org"
+#documentation = "https://maicos-devel.gitlab.io/maicos"
+#repository = "https://gitlab.com/maicos-devel/maicos"
+#changelog = "https://maicos-devel.gitlab.io/maicos/get-started/changelog.html"
+#issues = "https://gitlab.com/maicos-devel/maicos/-/issues"
+#discord = "https://discord.gg/mnrEQWVAed"
+#twitter = "https://twitter.com/maicos_analysis"
+
+#[project.optional-dependencies]
+#examples = [
+#    "matplotlib",
+#]
+
+#[project.scripts]
+#maicos = "maicos.__main__:main"
+
+#[tool.setuptools.packages.find]
+#where = ["src"]
+
+# configuration for the isort module
+[tool.isort]
+line_length = 80
+indent = 4
+multi_line_output = 8
+include_trailing_comma = true
+lines_after_imports = 2
+known_first_party = "nonmaicos"
+#skip = ["src/maicos/_version.py", "versioneer.py"]
+
+#[tool.pytest.ini_options]
+#addopts = "-p pytest_cov"
+#python_files = ["test_*.py", "*_test.py", "tests.py"]
+testpaths = "tests"
+
+#[tool.check-manifest]
+# ignore files missing in VCS
+#ignore = ["src/maicos/lib/_cutil.c"]
+
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "nonmaicos/_version.py"
+tag_prefix = "v"

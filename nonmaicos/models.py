@@ -5,15 +5,14 @@ import numpy as np
 
 
 def empty(dimensions):
-
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
-            message="Residues specified but no atom_resindex given.  All atoms will be placed in first Residue.",
+            message="Residues specified but no atom_resindex given. All atoms will be placed in first Residue.",
         )
         warnings.filterwarnings(
             "ignore",
-            message="Segments specified but no segment_resindex given.  All residues will be placed in first Segment",
+            message="Segments specified but no segment_resindex given. All residues will be placed in first Segment",
         )
         u = mda.Universe.empty(0, trajectory=True)
 
@@ -22,7 +21,6 @@ def empty(dimensions):
 
 
 def spce():
-
     l_1 = 1
 
     q_H = 0.4238
@@ -33,7 +31,6 @@ def spce():
 
 
 def tip4p_epsilon():
-
     l_1 = 0.9572
     l_2 = 0.105
 
@@ -46,15 +43,10 @@ def tip4p_epsilon():
 
 
 def type_a(l_1, q_O, q_H, theta):
-
     model = mda.Universe.empty(
-        3,
-        n_residues=1,
-        atom_resindex=[0, 0, 0],
-        residue_segindex=[0],
-        trajectory=True
+        3, n_residues=1, atom_resindex=[0, 0, 0], residue_segindex=[0], trajectory=True
     )
-    
+
     model.add_TopologyAttr("name", ["OW", "HW1", "HW2"])
     model.add_TopologyAttr("type", ["O", "H", "H"])
     model.add_TopologyAttr("resname", ["SOL"])
@@ -64,21 +56,20 @@ def type_a(l_1, q_O, q_H, theta):
     model.add_TopologyAttr("masses", [15.999, 1.00784, 1.00784])
     model.add_TopologyAttr("bonds", [(0, 1), (0, 2)])
     model.add_TopologyAttr("angles", [(1, 0, 2)])
-    
+
     pos_O = np.array([0, 0, 0], dtype=np.float32)
     pos_H1 = pos_O + np.array([0, l_1, 0], dtype=np.float32)
     pos_H2 = pos_O + np.array(
         [l_1 * np.cos(theta - np.pi / 2), l_1 * np.sin(theta - np.pi / 2), 0],
         dtype=np.float32,
     )
-    
+
     model.atoms.positions = np.array([pos_O, pos_H1, pos_H2])
-    
+
     return model
 
 
 def type_c(l_1, l_2, q_M, q_H, theta):
-
     model = mda.Universe.empty(
         4,
         n_residues=1,
@@ -104,8 +95,7 @@ def type_c(l_1, l_2, q_M, q_H, theta):
         dtype=np.float32,
     )
     pos_M = pos_O + np.array(
-        [l_2 * np.cos(np.pi / 2 - theta / 2),
-         l_2 * np.sin(np.pi / 2 - theta / 2), 0],
+        [l_2 * np.cos(np.pi / 2 - theta / 2), l_2 * np.sin(np.pi / 2 - theta / 2), 0],
         dtype=np.float32,
     )
 

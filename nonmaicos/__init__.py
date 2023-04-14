@@ -4,11 +4,14 @@ nonmaicos
 A MD manipulation library.
 """
 
-__version__ = "0.0.1"
 __author__ = 'Henrik Jaeger'
 __credits__ = 'ICP, Uni Stuttgart'
 
 
-from .insert import InsertPlanar, InsertCylinder, InsertSphere
+from .insert import InsertPlanar, InsertCylinder, InsertSphere, SolvatePlanar
 from . import models
 
+__all__ = ['InsertPlanar', 'InsertCylinder', 'InsertSphere', 'SolvatePlanar', 'models']
+
+from . import _version
+__version__ = _version.get_versions()['version']
