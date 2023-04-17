@@ -6,8 +6,5 @@ setup(
     name="nonmaicos",
     version=versioneer.get_version(),
     packages=["nonmaicos"],
-    install_requires=[
-        'MDAnalysis>=2.0.0',
-        'numpy'
-        ],
-    )
+    install_requires=["MDAnalysis>=2.0.0", "numpy"],
+)

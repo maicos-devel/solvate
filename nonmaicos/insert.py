@@ -8,13 +8,16 @@ from .models import empty
 def tile_universe(universe, n_x, n_y, n_z):
     box = universe.dimensions[:3]
     copied = []
+    i = 0
     for x in tqdm(range(n_x)):
         for y in range(n_y):
             for z in range(n_z):
                 u_ = universe.copy()
                 move_by = box * (x, y, z)
+                u_.residues.resids += len(universe.residues) * i
                 u_.atoms.translate(move_by)
                 copied.append(u_.atoms)
+                i += 1
 
     new_universe = mda.Merge(*copied)
     new_box = box * (n_x, n_y, n_z)
@@ -76,22 +79,13 @@ def SolvatePlanar(
     nAtomsTarget = TargetUniverse.atoms.n_atoms
     nAtomsProjectile = ProjectileUniverse.atoms.n_atoms
     n = int(n)
+    print(f"Should solvate {n} Projectiles")
     x = np.ceil((n / solvate_factor) ** (1 / 3)).astype(int)
-    print(x)
     if x <= 1:
         x = 1
-        print(
-            "Based on a solvation factor of",
-            solvate_factor,
-            "tiling of box with",
-            x,
-            "x",
-            x,
-            "x",
-            x,
-            "is optimal. ",
-            "Defaulting to single insertions.",
-        )
+        print(f"Solvation factor: {solvate_factor}")
+        print(f"Best tiling is {x}x{x}x{x}.")
+
         return InsertPlanar(
             TargetUniverse,
             ProjectileUniverse,
@@ -107,26 +101,11 @@ def SolvatePlanar(
         )
     if n / (x**3) < SOLVATION_THRESHOLD and x > 2:
         x -= 1
-    print("Should solvate", n, "Projectiles")
 
     real_solvate_factor = n / (x**3)
 
-    print(
-        "Based on solvation factor",
-        solvate_factor,
-        "a tiling of the box with",
-        x,
-        "x",
-        x,
-        "x",
-        x,
-        "is optimal.",
-    )
-    print(
-        "Resulting in a total of",
-        int(x**3 * solvate_factor),
-        "projectiles in the solvate box",
-    )
+    print(f"Solvation factor: {solvate_factor}")
+    print(f"Best tiling is {x}x{x}x{x}.")
 
     targetCompensation = nAtomsTarget / nAtomsProjectile
 
@@ -178,14 +157,15 @@ def SolvatePlanar(
 
     ns = mda.lib.NeighborSearch.AtomNeighborSearch(target, SolvatedUniverse.dimensions)
     touching_atoms = ns.search(projectile, distance, level="R").atoms
-    print("Touching atoms found:", touching_atoms.n_atoms)
-    print("Removing touching projectiles:", touching_atoms.n_atoms / nAtomsProjectile)
-    SolvatedUniverse = mda.Merge(SolvatedUniverse.atoms - touching_atoms)
-    SolvatedUniverse.dimensions = dimensionsTarget
+    if touching_atoms.n_atoms > 0:
+        print("Touching atoms found:", touching_atoms.n_atoms)
+        print("Removing touching projectiles:", touching_atoms.n_atoms / nAtomsProjectile)
+        SolvatedUniverse = mda.Merge(SolvatedUniverse.atoms - touching_atoms)
+        SolvatedUniverse.dimensions = dimensionsTarget
     print("Resulting number of atoms:", SolvatedUniverse.atoms.n_atoms)
     print("Expected number of atoms:", n * nAtomsProjectile + nAtomsTarget)
     missingProjectiles = int(
-        ((n * 3 + nAtomsTarget) - SolvatedUniverse.atoms.n_atoms) / nAtomsProjectile
+        ((n * nAtomsProjectile + nAtomsTarget) - SolvatedUniverse.atoms.n_atoms) / nAtomsProjectile
     )
 
     if missingProjectiles > 0:
@@ -207,8 +187,11 @@ def SolvatePlanar(
             tries,
         )
     elif missingProjectiles < 0:
-        print("Too many projectiles inserted:", -missingProjectiles)
         nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
+        print("Too many projectiles inserted:", -missingProjectiles)
+        print(nonTargetAtoms.n_atoms)
+        print(nonTargetAtoms.residues.n_residues)
+        print(np.unique(nonTargetAtoms.residues.resids).shape)
         print("Removing", -missingProjectiles, "randomly selected projectiles.")
         ToBeRemoved = nonTargetAtoms.residues[
             np.random.choice(

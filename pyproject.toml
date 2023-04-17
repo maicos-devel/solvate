@@ -48,14 +48,9 @@ dependencies = [
 ]
 dynamic = ["version"]
 
-#[project.urls]
-#homepage = "https://www.maicos-analysis.org"
-#documentation = "https://maicos-devel.gitlab.io/maicos"
-#repository = "https://gitlab.com/maicos-devel/maicos"
-#changelog = "https://maicos-devel.gitlab.io/maicos/get-started/changelog.html"
-#issues = "https://gitlab.com/maicos-devel/maicos/-/issues"
-#discord = "https://discord.gg/mnrEQWVAed"
-#twitter = "https://twitter.com/maicos_analysis"
+[project.urls]
+"Homepage" = "https://gitlab.com/hejamu/nonmaicos"
+"Bug Tracker" = "https://gitlab.com/hejamu/nonmaicos/issues"
 
 #[project.optional-dependencies]
 #examples = [
