@@ -51,6 +51,7 @@ def SolvatePlanar(
     TargetUniverse,
     ProjectileUniverse,
     n=1,
+    density=None,
     xmin=0,
     ymin=0,
     zmin=0,
@@ -67,6 +68,8 @@ def SolvatePlanar(
 
     # Use no fewer than 20 atoms for solvation
     SOLVATION_THRESHOLD = 20
+    if density is not None:
+        n = density * TargetUniverse.dimensions[0] * TargetUniverse.dimensions[1] * TargetUniverse.dimensions[2]
 
     InsertionDomain = [xmin, ymin, zmin, xmax, ymax, zmax]
     for i in np.arange(3):
@@ -168,10 +171,12 @@ def SolvatePlanar(
         ((n * nAtomsProjectile + nAtomsTarget) - SolvatedUniverse.atoms.n_atoms) / nAtomsProjectile
     )
 
+    if density is not None:
+        print(f" {SolvatedUniverse.atoms.n_atoms - nAtomsTarget} projectiles inserted")
+        return SolvatedUniverse
     if missingProjectiles > 0:
         print("Missing", missingProjectiles, "Projectiles.")
         print("Adjusting fudge factor and trying again.")
-        
         return SolvatePlanar(
             TargetUniverse,
             ProjectileUniverse,
