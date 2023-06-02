@@ -47,6 +47,114 @@ def rot_random():
     return rot_angle, rot_vec
 
 
+def SolvateCylinder(
+    TargetUniverse,
+    ProjectileUniverse,
+    n=1,
+    density=None,
+    pos=None,
+    radius=None,
+    min=0,
+    max=None,
+    dim=2,
+    distance=1.25,
+    tries=1000,
+    fudge_factor=1,
+):
+    """Inserts the Projectile atoms into a box in the TargetUniverse
+    at random position and orientation and returns a new Universe."""
+
+    if max is None:
+        max = TargetUniverse.dimensions[dim]
+
+    nAtomsProjectile = ProjectileUniverse.atoms.n_atoms
+    dimensionsTarget = TargetUniverse.dimensions.copy()
+
+    if pos is None:
+        if TargetUniverse.atoms.n_atoms == 0:
+            pos = dimensionsTarget[:3] / 2
+        else:
+            pos = TargetUniverse.atoms.center_of_geometry()
+    pos[dim] = min
+
+    if radius is None:
+        radius = np.min(dimensionsTarget) / 2
+
+    if density is not None:
+        n = density * (2 * radius)**2 * (max - min)
+        
+    dimensionsTarget = TargetUniverse.dimensions.copy()
+
+    nAtomsTarget = TargetUniverse.atoms.n_atoms
+    nAtomsProjectile = ProjectileUniverse.atoms.n_atoms
+
+    n = int(n)
+    
+    InsertionDomain = np.array([pos[0] - radius, pos[1] - radius, min, pos[0] + radius,pos[1] + radius, max], dtype=np.float32)
+
+    SolvatedUniverse = SolvatePlanar(TargetUniverse, ProjectileUniverse,  int(n * (4/np.pi)) , density, *InsertionDomain)
+    dims = SolvatedUniverse.dimensions
+    TargetAtoms = SolvatedUniverse.atoms[:nAtomsTarget]
+    ProjectileAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
+    print(pos)
+    atomsInside = np.linalg.norm((ProjectileAtoms.positions - pos)[:, :2], axis=1) < radius
+    if TargetAtoms.n_atoms == 0:
+        SolvatedUniverse = ProjectileAtoms[atomsInside].residues.atoms
+    else:
+        SolvatedUniverse = mda.Merge(TargetAtoms,
+                                ProjectileAtoms[atomsInside].residues.atoms)
+    SolvatedUniverse.dimensions = dims
+
+    missingProjectiles = int(
+        ((n * nAtomsProjectile + nAtomsTarget) - SolvatedUniverse.atoms.n_atoms) / nAtomsProjectile
+    )
+
+    if density is not None:
+        print(f" {SolvatedUniverse.atoms.n_atoms - nAtomsTarget} projectiles inserted")
+        return SolvatedUniverse
+    if missingProjectiles > 0:
+        print("Missing", missingProjectiles, "Projectiles.")
+        print("Adjusting fudge factor and trying again.")
+        return SolvatePlanar(
+            TargetUniverse,
+            ProjectileUniverse,
+            n,
+            xmin,
+            ymin,
+            zmin,
+            xmax,
+            ymax,
+            zmax,
+            distance,
+            solvate_factor,
+            fudge_factor + 10 * missingProjectiles / n,
+            tries,
+        )
+    elif missingProjectiles < 0:
+        nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
+        print("Too many projectiles inserted:", -missingProjectiles)
+        print(nonTargetAtoms.n_atoms)
+        print(nonTargetAtoms.residues.n_residues)
+        print(np.unique(nonTargetAtoms.residues.resids).shape)
+        print("Removing", -missingProjectiles, "randomly selected projectiles.")
+        ToBeRemoved = nonTargetAtoms.residues[
+            np.random.choice(np.arange(len(nonTargetAtoms.residues)),
+                -missingProjectiles,
+                replace=False,
+            )
+        ]
+        SolvatedUniverse = mda.Merge(SolvatedUniverse.atoms - ToBeRemoved.atoms)
+        nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
+        TargetAtoms = SolvatedUniverse.atoms[:nAtomsTarget]
+        print(len(TargetAtoms.residues), len(nonTargetAtoms.residues), len(SolvatedUniverse.residues))
+        SolvatedUniverse.residues.resids = np.concatenate([TargetAtoms.residues.resids, np.arange(len(TargetAtoms.residues)+1,len(SolvatedUniverse.residues)+1)])
+        SolvatedUniverse.dimensions = dimensionsTarget
+        print("Final number of atoms:", SolvatedUniverse.atoms.n_atoms)
+        return SolvatedUniverse
+    else:
+        print("All projectiles inserted correctly")
+        return SolvatedUniverse
+
 def SolvatePlanar(
     TargetUniverse,
     ProjectileUniverse,

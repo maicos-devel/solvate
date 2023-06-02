@@ -8,10 +8,10 @@ __author__ = "Henrik Jaeger"
 __credits__ = "ICP, Uni Stuttgart"
 
 
-from .insert import InsertPlanar, InsertCylinder, InsertSphere, SolvatePlanar
+from .insert import InsertPlanar, InsertCylinder, InsertSphere, SolvatePlanar, SolvateCylinder
 from . import models
 
-__all__ = ["InsertPlanar", "InsertCylinder", "InsertSphere", "SolvatePlanar", "models"]
+__all__ = ["InsertPlanar", "InsertCylinder", "InsertSphere", "SolvatePlanar", "SolvateCylinder", "models"]
 
 from . import _version
 
