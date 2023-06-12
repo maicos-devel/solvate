@@ -179,6 +179,19 @@ def SolvatePlanar(
     if density is not None:
         n = density * TargetUniverse.dimensions[0] * TargetUniverse.dimensions[1] * TargetUniverse.dimensions[2]
 
+    if xmax is None:
+        xmax = TargetUniverse.dimensions[0]
+    if ymax is None:
+        ymax = TargetUniverse.dimensions[1]
+    if zmax is None:
+        zmax = TargetUniverse.dimensions[2]
+    if xmin is None:
+        xmin = 0
+    if ymin is None:
+        ymin = 0
+    if zmin is None:
+        zmin = 0
+
     InsertionDomain = [xmin, ymin, zmin, xmax, ymax, zmax]
     for i in np.arange(3):
         if InsertionDomain[i + 3] is None:
