@@ -281,6 +281,7 @@ def SolvatePlanar(
         empty(solvate_box_dimensions),
         ProjectileUniverse,
         real_solvate_factor,
+        distance=distance,
         tries=tries * 1000,
     )
 
@@ -431,7 +432,7 @@ def InsertPlanar(
 
         target = TargetUniverse.atoms[0:nAtomsTarget]
         projectile = TargetUniverse.atoms[-nAtomsProjectile:]
-        ns = mda.lib.NeighborSearch.AtomNeighborSearch(target)
+        ns = mda.lib.NeighborSearch.AtomNeighborSearch(target, dimensionsTarget)
 
         for attempt in range(tries):
             projectile.translate(
