@@ -4,14 +4,14 @@
 Maintainers
 -----------
 
-- Henrik Jaeger
+- Henrik Stooss
 
 Developers
 ----------
 
-- 
+- Henrik Stooss
 
 Contributors
 ------------
 
-- 
+- Philipp Staerk

@@ -11,11 +11,21 @@ The rules for nonMAICoS' CHANGELOG file:
 
 .. inclusion-marker-changelog-start
 
-v0.0.3 (2023/04/14)
------------------
+v0.0.5 (XXXX/XX/XX)
+-------------------
 
+- Fix pbc handling (!2)
+
+v0.0.4 (2023/04/14)
+-------------------
 Henrik Jaeger
 
-- let it rip
+- Add SolvatePlanar
+
+v0.0.3 (2022/11/02)
+-------------------
+Henrik Jaeger
+
+- Initial version
 
 .. inclusion-marker-changelog-end
