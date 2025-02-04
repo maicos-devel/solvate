@@ -206,14 +206,7 @@ def SolvatePlanar(
 
     # Use no fewer than 20 atoms for solvation
     SOLVATION_THRESHOLD = 20
-    if density is not None:
-        n = (
-            density
-            * TargetUniverse.dimensions[0]
-            * TargetUniverse.dimensions[1]
-            * TargetUniverse.dimensions[2]
-        )
-
+    
     if xmax is None:
         xmax = TargetUniverse.dimensions[0]
     if ymax is None:
@@ -234,6 +227,14 @@ def SolvatePlanar(
     InsertionDomain = np.array(InsertionDomain)
     InsertionDomainSize = InsertionDomain[3:6] - InsertionDomain[0:3]
     dimensionsTarget = TargetUniverse.dimensions.copy()
+
+    if density is not None:
+        n = (
+            density
+            * InsertionDomainSize[0]
+            * InsertionDomainSize[1]
+            * InsertionDomainSize[2]
+        )
 
     nAtomsTarget = TargetUniverse.atoms.n_atoms
     nAtomsProjectile = ProjectileUniverse.atoms.n_atoms
