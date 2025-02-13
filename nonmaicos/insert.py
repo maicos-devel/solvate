@@ -64,6 +64,7 @@ def SolvateCylinder(
     """Inserts the Projectile atoms into a box in the TargetUniverse
     at random position and orientation and returns a new Universe."""
 
+    print(f"The fudge factor is {fudge_factor}")
     if max is None:
         max = TargetUniverse.dimensions[dim]
 
@@ -82,6 +83,9 @@ def SolvateCylinder(
 
     if density is not None:
         n = density * (2 * radius) ** 2 * (max - min)
+        solvate_by_density_flag = True
+    else:
+        solvate_by_density_flag = False
 
     dimensionsTarget = TargetUniverse.dimensions.copy()
 
@@ -99,7 +103,7 @@ def SolvateCylinder(
     density = n / InsertionVolume
 
     SolvatedUniverse = SolvatePlanar(
-        TargetUniverse, ProjectileUniverse, None, density, *InsertionDomain
+        TargetUniverse, ProjectileUniverse, None, density, *InsertionDomain, fudge_factor=fudge_factor
     )
     dims = SolvatedUniverse.dimensions
     TargetAtoms = SolvatedUniverse.atoms[:nAtomsTarget]
@@ -125,28 +129,26 @@ def SolvateCylinder(
         / nAtomsProjectile
     )
     print("Missing", missingProjectiles, "Projectiles.")
-    if density is not None:
+    if solvate_by_density_flag:
         print(f" {SolvatedUniverse.atoms.n_atoms - nAtomsTarget} projectiles inserted")
         return SolvatedUniverse
     if missingProjectiles > 0:
         print("Missing", missingProjectiles, "Projectiles.")
         print("Adjusting fudge factor and trying again.")
-        return SolvatePlanar(
-            TargetUniverse,
-            ProjectileUniverse,
-            n,
-            density,
-            xmin,
-            ymin,
-            zmin,
-            xmax,
-            ymax,
-            zmax,
-            distance,
-            solvate_factor,
-            fudge_factor + 0.5,
-            tries,
-        )
+        return SolvateCylinder(
+                TargetUniverse,
+                ProjectileUniverse,
+                n,
+                density=None,
+                pos=pos,
+                radius=radius,
+                min=min,
+                max=max,
+                dim=dim,
+                distance=distance,
+                tries=tries,
+                fudge_factor=fudge_factor+0.5,)
+
     elif missingProjectiles < 0:
         nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
         print("Too many projectiles inserted:", -missingProjectiles)
