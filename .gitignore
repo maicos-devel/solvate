@@ -1,0 +1,9 @@
+*.egg-info
+*.pyc
+.tox/
+
+.coverage
+coverage.xml
+report.xml
+*.tar.gz
+*.whl

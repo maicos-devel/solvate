@@ -1,3 +1,15 @@
+#!/usr/bin/env python
+# -*- Mode: python; tab-width: 4; indent-tabs-mode:nil; coding:utf-8 -*-
+#
+# Copyright (c) 2024 Authors and contributors
+# (see the AUTHORS.rst file for the full list of names)
+#
+# Released under the GNU Public Licence, v3 or any higher version
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Build universes from template molecules."""
+
+from typing import Optional
+
 import MDAnalysis as mda
 import numpy as np
 from tqdm import tqdm
@@ -5,7 +17,13 @@ from tqdm import tqdm
 from .models import empty
 
 
-def tile_universe(universe, n_x, n_y, n_z):
+def tile_universe(
+    universe: mda.Universe,
+    n_x: int,
+    n_y: int,
+    n_z: int,
+) -> mda.Universe:
+    """Returns a new Universe with `n_x * n_y * n_z` copies of the input."""
     box = universe.dimensions[:3]
     copied = []
     i = 0
@@ -25,7 +43,8 @@ def tile_universe(universe, n_x, n_y, n_z):
     return new_universe
 
 
-def pos_random(InsertionDomain):
+def pos_random(InsertionDomain: np.ndarray) -> np.ndarray:
+    """Returns a random position within the given domain."""
     return np.array(
         np.random.rand(3) * (InsertionDomain[3:6] - InsertionDomain[0:3])
         + InsertionDomain[0:3],
@@ -33,7 +52,8 @@ def pos_random(InsertionDomain):
     )
 
 
-def rot_random():
+def rot_random() -> tuple:
+    """Returns a random rotation angle and vector, sampled uniformly on a sphere."""
     u_1, u_2, u_3 = np.random.rand(3)
 
     theta, phi = np.arccos(2 * u_1 - 1), 2 * np.pi * u_2
@@ -48,22 +68,20 @@ def rot_random():
 
 
 def SolvateCylinder(
-    TargetUniverse,
-    ProjectileUniverse,
-    n=1,
-    density=None,
-    pos=None,
-    radius=None,
-    min=0,
-    max=None,
-    dim=2,
-    distance=1.25,
-    tries=1000,
-    fudge_factor=1,
-):
-    """Inserts the Projectile atoms into a box in the TargetUniverse
-    at random position and orientation and returns a new Universe."""
-
+    TargetUniverse: mda.Universe,
+    ProjectileUniverse: mda.Universe,
+    n: int = 1,
+    density: Optional[float] = None,
+    pos: Optional[np.ndarray] = None,
+    radius: Optional[float] = None,
+    min: float = 0,
+    max: Optional[float] = None,
+    dim: int = 2,
+    distance: float = 1.25,
+    tries: int = 1000,
+    fudge_factor: float = 1,
+) -> mda.Universe:
+    """Inserts `n` projectile atoms in a cylindrical zone (fast)."""
     print(f"The fudge factor is {fudge_factor}")
     if max is None:
         max = TargetUniverse.dimensions[dim]
@@ -82,7 +100,7 @@ def SolvateCylinder(
         radius = np.min(dimensionsTarget) / 2
 
     if density is not None:
-        n = density * (2 * radius) ** 2 * (max - min)
+        n = np.floor(density * (2 * radius) ** 2 * (max - min))
         solvate_by_density_flag = True
     else:
         solvate_by_density_flag = False
@@ -91,8 +109,6 @@ def SolvateCylinder(
 
     nAtomsTarget = TargetUniverse.atoms.n_atoms
     nAtomsProjectile = ProjectileUniverse.atoms.n_atoms
-
-    n = int(n)
 
     InsertionDomain = np.array(
         [pos[0] - radius, pos[1] - radius, min, pos[0] + radius, pos[1] + radius, max],
@@ -103,7 +119,19 @@ def SolvateCylinder(
     density = n / InsertionVolume
 
     SolvatedUniverse = SolvatePlanar(
-        TargetUniverse, ProjectileUniverse, None, density, *InsertionDomain, fudge_factor=fudge_factor
+        TargetUniverse,
+        ProjectileUniverse,
+        0,
+        density,
+        xmin=InsertionDomain[0],
+        ymin=InsertionDomain[1],
+        zmin=InsertionDomain[2],
+        xmax=InsertionDomain[3],
+        ymax=InsertionDomain[4],
+        zmax=InsertionDomain[5],
+        distance=distance,
+        tries=tries,
+        fudge_factor=fudge_factor,
     )
     dims = SolvatedUniverse.dimensions
     TargetAtoms = SolvatedUniverse.atoms[:nAtomsTarget]
@@ -135,19 +163,21 @@ def SolvateCylinder(
     if missingProjectiles > 0:
         print("Missing", missingProjectiles, "Projectiles.")
         print("Adjusting fudge factor and trying again.")
+        new_fudge_factor = fudge_factor + 0.5
         return SolvateCylinder(
-                TargetUniverse,
-                ProjectileUniverse,
-                n,
-                density=None,
-                pos=pos,
-                radius=radius,
-                min=min,
-                max=max,
-                dim=dim,
-                distance=distance,
-                tries=tries,
-                fudge_factor=fudge_factor+0.5,)
+            TargetUniverse,
+            ProjectileUniverse,
+            n,
+            density=None,
+            pos=pos,
+            radius=radius,
+            min=min,
+            max=max,
+            dim=dim,
+            distance=distance,
+            tries=tries,
+            fudge_factor=new_fudge_factor,
+        )
 
     elif missingProjectiles < 0:
         nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
@@ -188,27 +218,25 @@ def SolvateCylinder(
 
 
 def SolvatePlanar(
-    TargetUniverse,
-    ProjectileUniverse,
-    n=1,
-    density=None,
-    xmin=0,
-    ymin=0,
-    zmin=0,
-    xmax=None,
-    ymax=None,
-    zmax=None,
-    distance=1.25,
-    solvate_factor=100,
-    fudge_factor=1,
-    tries=1000,
-):
-    """Inserts the Projectile atoms into a box in the TargetUniverse
-    at random position and orientation and returns a new Universe."""
-
+    TargetUniverse: mda.Universe,
+    ProjectileUniverse: mda.Universe,
+    n: int = 1,
+    density: Optional[float] = None,
+    xmin: int = 0,
+    ymin: int = 0,
+    zmin: int = 0,
+    xmax: Optional[float] = None,
+    ymax: Optional[float] = None,
+    zmax: Optional[float] = None,
+    distance: float = 1.25,
+    solvate_factor: int = 100,
+    fudge_factor: float = 1.0,
+    tries: int = 1000,
+) -> mda.Universe:
+    """Returns a rectacular box of `n` projectile atoms (fast)."""
     # Use no fewer than 20 atoms for solvation
     SOLVATION_THRESHOLD = 20
-    
+
     if xmax is None:
         xmax = TargetUniverse.dimensions[0]
     if ymax is None:
@@ -222,16 +250,15 @@ def SolvatePlanar(
     if zmin is None:
         zmin = 0
 
-    InsertionDomain = [xmin, ymin, zmin, xmax, ymax, zmax]
+    InsertionDomain = np.array([xmin, ymin, zmin, xmax, ymax, zmax])
     for i in np.arange(3):
         if InsertionDomain[i + 3] is None:
             InsertionDomain[i + 3] = TargetUniverse.dimensions[i]
-    InsertionDomain = np.array(InsertionDomain)
     InsertionDomainSize = InsertionDomain[3:6] - InsertionDomain[0:3]
     dimensionsTarget = TargetUniverse.dimensions.copy()
 
     if density is not None:
-        n = (
+        n = np.floor(
             density
             * InsertionDomainSize[0]
             * InsertionDomainSize[1]
@@ -240,9 +267,10 @@ def SolvatePlanar(
 
     nAtomsTarget = TargetUniverse.atoms.n_atoms
     nAtomsProjectile = ProjectileUniverse.atoms.n_atoms
-    n = int(n)
+
     print(f"Should solvate {n} Projectiles")
     x = np.ceil((n / (solvate_factor * fudge_factor)) ** (1 / 3)).astype(int)
+
     if x <= 1:
         x = 1
         print(f"Solvation factor: {solvate_factor}")
@@ -395,21 +423,19 @@ def SolvatePlanar(
 
 
 def InsertPlanar(
-    TargetUniverse,
-    ProjectileUniverse,
-    n=1,
-    xmin=0,
-    ymin=0,
-    zmin=0,
-    xmax=None,
-    ymax=None,
-    zmax=None,
-    distance=1.25,
-    tries=1000,
-):
-    """Inserts the Projectile atoms into a box in the TargetUniverse
-    at random position and orientation and returns a new Universe."""
-
+    TargetUniverse: mda.Universe,
+    ProjectileUniverse: mda.Universe,
+    n: int = 1,
+    xmin: int = 0,
+    ymin: int = 0,
+    zmin: int = 0,
+    xmax: Optional[float] = None,
+    ymax: Optional[float] = None,
+    zmax: Optional[float] = None,
+    distance: float = 1.25,
+    tries: int = 1000,
+) -> mda.Universe:
+    """Inserts `n` projectile atoms in a rectangular zone."""
     InsertionDomain = [xmin, ymin, zmin, xmax, ymax, zmax]
     for i in np.arange(3):
         if InsertionDomain[i + 3] is None:
@@ -429,7 +455,7 @@ def InsertPlanar(
         TargetUniverse.atoms.rotateby(*rot_random())
         n -= 1
 
-    for N in tqdm(np.arange(n)):
+    for _N in tqdm(np.arange(n)):
         nAtomsTarget = TargetUniverse.atoms.n_atoms
 
         TargetUniverse = mda.Merge(TargetUniverse.atoms, ProjectileUniverse.atoms)
@@ -439,7 +465,7 @@ def InsertPlanar(
         projectile = TargetUniverse.atoms[-nAtomsProjectile:]
         ns = mda.lib.NeighborSearch.AtomNeighborSearch(target, dimensionsTarget)
 
-        for attempt in range(tries):
+        for _attempt in range(tries):
             projectile.translate(
                 pos_random(InsertionDomain) - projectile.atoms.center_of_geometry()
             )
@@ -462,21 +488,18 @@ def InsertPlanar(
 
 
 def InsertCylinder(
-    TargetUniverse,
-    ProjectileUniverse,
-    n=1,
-    pos=None,
-    radius=None,
-    min=0,
-    max=None,
-    dim=2,
-    distance=1.25,
-    tries=1000,
-):
-    """Insert the Projectile atoms into a cylindrical zone around
-    TargetUniverse's center of geometry at random position and orientation
-    and returns a new Universe."""
-
+    TargetUniverse: mda.Universe,
+    ProjectileUniverse: mda.Universe,
+    n: int = 1,
+    pos: Optional[np.ndarray] = None,
+    radius: Optional[float] = None,
+    min: float = 0,
+    max: Optional[float] = None,
+    dim: int = 2,
+    distance: float = 1.25,
+    tries: int = 1000,
+) -> mda.Universe:
+    """Inserts `n` projectile atoms in a cylindrical zone."""
     if max is None:
         max = TargetUniverse.dimensions[dim]
 
@@ -495,7 +518,7 @@ def InsertCylinder(
 
     ProjectileUniverse.atoms.translate(-ProjectileUniverse.atoms.center_of_geometry())
 
-    for N in tqdm(np.arange(n)):
+    for _N in tqdm(np.arange(n)):
         nAtomsTarget = TargetUniverse.atoms.n_atoms
         TargetUniverse = mda.Merge(TargetUniverse.atoms, ProjectileUniverse.atoms)
         TargetUniverse.dimensions = dimensionsTarget.copy()
@@ -506,7 +529,7 @@ def InsertCylinder(
         ns = mda.lib.NeighborSearch.AtomNeighborSearch(target)
 
         # Generate coordinates and check for overlap
-        for attempt in range(tries):
+        for _attempt in range(tries):
             projectile.rotateby(*rot_random())
 
             r = radius * np.sqrt(np.random.rand())
@@ -531,21 +554,20 @@ def InsertCylinder(
 
 
 def InsertSphere(
-    TargetUniverse,
-    ProjectileUniverse,
-    n=1,
-    pos=None,
-    radius=None,
-    xmax=None,
-    ymax=None,
-    zmax=None,
-    distance=1.25,
-    tries=1000,
-):
-    """Inserts the Projectile atoms into a box in the TargetUniverse
-    at random position and orientation and returns a new Universe."""
+    TargetUniverse: mda.Universe,
+    ProjectileUniverse: mda.Universe,
+    n: int = 1,
+    pos: Optional[np.ndarray] = None,
+    radius: Optional[float] = None,
+    xmax: Optional[float] = None,
+    ymax: Optional[float] = None,
+    zmax: Optional[float] = None,
+    distance: float = 1.25,
+    tries: int = 1000,
+) -> mda.Universe:
+    """Inserts `n` projectile atoms in a spherical zone."""
 
-    def rand_spherical(radius=1):
+    def rand_spherical(radius: float = 1.0) -> np.ndarray:
         u = np.random.rand()
         v = np.random.rand()
 
@@ -586,7 +608,7 @@ def InsertSphere(
         TargetUniverse.atoms.rotateby(*rot_random())
         n -= 1
 
-    for N in tqdm(np.arange(n)):
+    for _N in tqdm(np.arange(n)):
         nAtomsTarget = TargetUniverse.atoms.n_atoms
         TargetUniverse = mda.Merge(TargetUniverse.atoms, ProjectileUniverse.atoms)
         TargetUniverse.dimensions = dimensionsTarget.copy()
@@ -597,7 +619,7 @@ def InsertSphere(
         ns = mda.lib.NeighborSearch.AtomNeighborSearch(target)
 
         # Generate coordinates and check for overlap
-        for attempt in range(tries):
+        for _attempt in range(tries):
             projectile.rotateby(*rot_random())
             newcoord = rand_spherical(radius) + pos
             projectile.translate(newcoord - projectile.atoms.center_of_geometry())

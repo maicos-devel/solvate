@@ -4,14 +4,15 @@
 Maintainers
 -----------
 
-- Henrik Stooss
+- Henrik Stooß
 
 Developers
 ----------
 
-- Henrik Stooss
+- Henrik Stooß
+- Kira Fischer
 
 Contributors
 ------------
 
-- Philipp Staerk
+- Philipp Stärk

@@ -14,6 +14,10 @@ The rules for nonMAICoS' CHANGELOG file:
 v0.0.5 (XXXX/XX/XX)
 -------------------
 
+- Fix wrong angles in water models (!6)
+- Add CI, linting, and testing (!6)
+- Fix calculation of the number of particles from the density (!5)
+- Fixed a bug in calling SolvatePlanar (!3)
 - Fix pbc handling (!2)
 
 v0.0.4 (2023/04/14)

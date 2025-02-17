@@ -2,7 +2,7 @@
 # These are the assumed default build requirements from pip:
 # https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
 requires = [
-    "setuptools>=43.0.0",
+    "setuptools>=64.0.0",
     "setuptools-git-versioning<2",
     "versioneer[toml]",
     "wheel"]
@@ -13,9 +13,9 @@ name = "nonmaicos"
 description = "Quickly build confined geometries for MD simulations"
 authors = [{name = "MAICoS Developer Team"}]
 maintainers = [
-    {name = "Henrik Jaeger"},
+    {name = "Henrik Stooß"},
 ]
-readme = "README.rst"
+readme = "README.md"
 requires-python = ">=3.8"
 keywords = ["Science", "Molecular Dynamics", "Confined Systems", "MDAnalysis"]
 license = {text = "GPL-3.0-or-later"}
@@ -29,10 +29,10 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Chemistry",
@@ -40,50 +40,35 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "mdacli>=0.1.12",
-    "MDAnalysis>=2.2.0",
-    "numpy>=1.20.0",
-    "scipy>=1.0.0",
-    "tqdm>=4.60.0",
+    "MDAnalysis>=2.8.0",
 ]
 dynamic = ["version"]
 
 [project.urls]
-"Homepage" = "https://gitlab.com/hejamu/nonmaicos"
-"Bug Tracker" = "https://gitlab.com/hejamu/nonmaicos/issues"
-
-#[project.optional-dependencies]
-#examples = [
-#    "matplotlib",
-#]
-
-#[project.scripts]
-#maicos = "maicos.__main__:main"
-
-#[tool.setuptools.packages.find]
-#where = ["src"]
+"Homepage" = "https://gitlab.com/maicos-devel/nonmaicos"
+"Bug Tracker" = "https://gitlab.com/maicos-devel/nonmaicos/issues"
 
 # configuration for the isort module
 [tool.isort]
 line_length = 80
 indent = 4
-multi_line_output = 8
+multi_line_output = 3
 include_trailing_comma = true
 lines_after_imports = 2
 known_first_party = "nonmaicos"
-#skip = ["src/maicos/_version.py", "versioneer.py"]
+skip = ["_version.py", "versioneer.py"]
 
-#[tool.pytest.ini_options]
-#addopts = "-p pytest_cov"
-#python_files = ["test_*.py", "*_test.py", "tests.py"]
+[tool.pytest.ini_options]
+addopts = "-p pytest_cov"
+python_files = ["test_*.py", "*_test.py", "tests.py"]
 testpaths = "tests"
-
-#[tool.check-manifest]
-# ignore files missing in VCS
-#ignore = ["src/maicos/lib/_cutil.c"]
 
 [tool.versioneer]
 VCS = "git"
 style = "pep440"
 versionfile_source = "nonmaicos/_version.py"
 tag_prefix = "v"
+
+[tool.mypy]
+follow_imports = 'skip'
+ignore_missing_imports = true
