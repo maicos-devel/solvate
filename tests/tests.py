@@ -17,7 +17,7 @@ import solvate
 class TestInserts:
     """Test the insertion code."""
 
-    @pytest.mark.parametrize("n_water", (1, 10, 100))
+    @pytest.mark.parametrize("n_water", [1, 10, 100])
     def test_insert_planar_n_water(self, n_water):
         """Test the number of inserted particles in InsertPlanar."""
         emptyUniverse = solvate.models.empty([20, 20, 20, 90, 90, 90])
@@ -25,50 +25,50 @@ class TestInserts:
         u = solvate.InsertSphere(emptyUniverse, testParticle, n_water)
         assert u.atoms.n_atoms == n_water * 3
 
-    # TODO: def test_insert_planar_density(self):
+    # TODO(@hejamu): def test_insert_planar_density(self):
     #     """Test the density of the inserted particles in InsertPlanar."""
 
-    # TODO: def test_insert_sphere_n_water(self):
+    # TODO(@hejamu): def test_insert_sphere_n_water(self):
     #     """Test the number of inserted particles in InsertSphere."""
 
-    # TODO: def test_insert_sphere_density(self):
+    # TODO(@hejamu): def test_insert_sphere_density(self):
     #     """Test the density of the inserted particles in InsertSphere."""
 
-    # TODO: def test_insert_cylinder_n_water(self):
+    # TODO(@hejamu): def test_insert_cylinder_n_water(self):
     #     """Test the number of inserted particles in InsertCylinder."""
 
-    # TODO: def test_insert_cylinder_density(self):
+    # TODO(@hejamu): def test_insert_cylinder_density(self):
     #     """Test the density of the inserted particles in InsertCylinder."""
 
-    # TODO: def test_insert_planar_domain(self):
+    # TODO(@hejamu): def test_insert_planar_domain(self):
     #     """Test the domain of the inserted particles in InsertPlanar."""
 
-    # TODO: def test_insert_sphere_domain(self):
+    # TODO(@hejamu): def test_insert_sphere_domain(self):
     #     """Test the domain of the inserted particles in InsertSphere."""
 
-    # TODO: def test_insert_cylinder_domain(self):
+    # TODO(@hejamu): def test_insert_cylinder_domain(self):
     #     """Test the domain of the inserted particles in InsertCylinder."""
 
 
 # class TestSolvate(object):
 #     """Test the solvation code."""
 
-# TODO: test_solvate_planar_n_water(self):
+# TODO(@hejamu): test_solvate_planar_n_water(self):
 #     """Test the solvation of a planar system."""
 
-# TODO: test_solvate_sphere_n_water(self):
+# TODO(@hejamu): test_solvate_sphere_n_water(self):
 #     """Test the solvation of a spherical system."""
 
-# TODO: test_solvate_cylinder_n_water(self):
+# TODO(@hejamu): test_solvate_cylinder_n_water(self):
 #     """Test the solvation of a cylindrical system."""
 
-# TODO: test_solvate_planar_density(self):
+# TODO(@hejamu): test_solvate_planar_density(self):
 #     """Test the density of the solvated system."""
 
-# TODO: test_solvate_sphere_density(self):
+# TODO(@hejamu): test_solvate_sphere_density(self):
 #     """Test the density of the solvated system."""
 
-# TODO: test_solvate_cylinder_density(self):
+# TODO(@hejamu): test_solvate_cylinder_density(self):
 #     """Test the density of the solvated system."""
 
 
@@ -99,7 +99,7 @@ class TestModels:
         assert len(u.atoms.bonds) == 2
         assert len(u.atoms.angles) == 1
 
-    @pytest.mark.parametrize("angle", (45, 90, 125, 180))
+    @pytest.mark.parametrize("angle", [45, 90, 125, 180])
     def test_three_site_angle(self, angle):
         """Test three site model build function."""
         pos_O, pos_H1, pos_H2 = solvate.models._three_site_molecule(np.deg2rad(angle))
@@ -114,13 +114,13 @@ class TestModels:
         # If the angle is correct, we are happy
         assert_allclose(np.rad2deg(alpha), angle)
 
-    @pytest.mark.parametrize("angle", (0, 181, -1))
+    @pytest.mark.parametrize("angle", [0, 181, -1])
     def test_three_site_error(self, angle):
         """Test three site model ValueError."""
         with pytest.raises(ValueError):
             solvate.models._three_site_molecule(np.deg2rad(angle))
 
-    @pytest.mark.parametrize("angle", (45, 90, 125, 180))
+    @pytest.mark.parametrize("angle", [45, 90, 125, 180])
     def test_type_a_angle(self, angle):
         """Test type a angle."""
         u = solvate.models.type_a(1, -2, 1, np.deg2rad(angle))
@@ -134,7 +134,7 @@ class TestModels:
         assert len(u.atoms.bonds) == 2
         assert len(u.atoms.angles) == 1
 
-    @pytest.mark.parametrize("angle", (45, 90, 125, 180))
+    @pytest.mark.parametrize("angle", [45, 90, 125, 180])
     def test_type_c_angle(self, angle):
         """Test type c angle."""
         u = solvate.models.type_c(0.9572, 0.105, -1.054, 0.527, np.deg2rad(angle))
@@ -145,7 +145,7 @@ class TestModels:
 
         This is a regression test, the values here should NEVER change.
         """
-        # TODO: Check the values against a source, this is a regression test
+        # TODO(@hejamu): Check the values against a source, this is a regression test
         u = solvate.models.spce()
         assert u.atoms.n_atoms == 3
         assert len(u.atoms.bonds) == 2
