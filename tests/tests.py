@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- Mode: python; tab-width: 4; indent-tabs-mode:nil; coding:utf-8 -*-
 #
 # Copyright (c) 2024 Authors and contributors
 # (see the AUTHORS.rst file for the full list of names)
@@ -7,6 +6,7 @@
 # Released under the GNU Public Licence, v3 or any higher version
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Tests for the solvate package."""
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
@@ -14,7 +14,7 @@ from numpy.testing import assert_allclose
 import solvate
 
 
-class TestInserts(object):
+class TestInserts:
     """Test the insertion code."""
 
     @pytest.mark.parametrize("n_water", (1, 10, 100))
@@ -72,7 +72,7 @@ class TestInserts(object):
 #     """Test the density of the solvated system."""
 
 
-class TestModels(object):
+class TestModels:
     """Tests for the models."""
 
     # @pytest.fixture()
