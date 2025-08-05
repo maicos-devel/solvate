@@ -8,6 +8,7 @@ include MANIFEST.in
 exclude example.ipynb
 
 prune tests
+prune developer
 prune .tox
 
 exclude .gitattributes
