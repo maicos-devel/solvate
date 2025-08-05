@@ -117,7 +117,7 @@ class TestModels:
     @pytest.mark.parametrize("angle", [0, 181, -1])
     def test_three_site_error(self, angle):
         """Test three site model ValueError."""
-        with pytest.raises(ValueError, match="theta must be in \(0, pi\]"):
+        with pytest.raises(ValueError, match="theta must be in \\(0, pi\\]"):
             solvate.models._three_site_molecule(np.deg2rad(angle))
 
     @pytest.mark.parametrize("angle", [45, 90, 125, 180])
