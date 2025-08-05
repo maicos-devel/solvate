@@ -2,7 +2,6 @@ graft src
 
 include AUTHORS.rst
 include CHANGELOG.rst
-include versioneer.py
 include README.md
 include MANIFEST.in
 
@@ -11,8 +10,9 @@ exclude example.ipynb
 prune tests
 prune .tox
 
+exclude .gitattributes
+exclude .gitignore
 exclude tox.ini
-exclude .gitlab-ci.yml
 
 global-exclude *.py[cod] __pycache__/* *.so *.dylib
 
