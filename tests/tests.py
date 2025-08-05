@@ -6,12 +6,12 @@
 #
 # Released under the GNU Public Licence, v3 or any higher version
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Tests for the nonMAICoS package."""
+"""Tests for the solvate package."""
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-import nonmaicos
+import solvate
 
 
 class TestInserts(object):
@@ -20,9 +20,9 @@ class TestInserts(object):
     @pytest.mark.parametrize("n_water", (1, 10, 100))
     def test_insert_planar_n_water(self, n_water):
         """Test the number of inserted particles in InsertPlanar."""
-        emptyUniverse = nonmaicos.models.empty([20, 20, 20, 90, 90, 90])
-        testParticle = nonmaicos.models.spce()
-        u = nonmaicos.InsertSphere(emptyUniverse, testParticle, n_water)
+        emptyUniverse = solvate.models.empty([20, 20, 20, 90, 90, 90])
+        testParticle = solvate.models.spce()
+        u = solvate.InsertSphere(emptyUniverse, testParticle, n_water)
         assert u.atoms.n_atoms == n_water * 3
 
     # TODO: def test_insert_planar_density(self):
@@ -94,7 +94,7 @@ class TestModels(object):
 
         Type a water molecules should have 3 atoms, 2 bonds, and 1 angle.
         """
-        u = nonmaicos.models.type_a(1, -2, 0.4238, np.deg2rad(109.47))
+        u = solvate.models.type_a(1, -2, 0.4238, np.deg2rad(109.47))
         assert u.atoms.n_atoms == 3
         assert len(u.atoms.bonds) == 2
         assert len(u.atoms.angles) == 1
@@ -102,7 +102,7 @@ class TestModels(object):
     @pytest.mark.parametrize("angle", (45, 90, 125, 180))
     def test_three_site_angle(self, angle):
         """Test three site model build function."""
-        pos_O, pos_H1, pos_H2 = nonmaicos.models._three_site_molecule(np.deg2rad(angle))
+        pos_O, pos_H1, pos_H2 = solvate.models._three_site_molecule(np.deg2rad(angle))
 
         # We expect the middle atom to be at the origin for now.
         assert_allclose(pos_O, np.array([0.0, 0.0, 0.0]))
@@ -118,18 +118,18 @@ class TestModels(object):
     def test_three_site_error(self, angle):
         """Test three site model ValueError."""
         with pytest.raises(ValueError):
-            nonmaicos.models._three_site_molecule(np.deg2rad(angle))
+            solvate.models._three_site_molecule(np.deg2rad(angle))
 
     @pytest.mark.parametrize("angle", (45, 90, 125, 180))
     def test_type_a_angle(self, angle):
         """Test type a angle."""
-        u = nonmaicos.models.type_a(1, -2, 1, np.deg2rad(angle))
+        u = solvate.models.type_a(1, -2, 1, np.deg2rad(angle))
         assert_allclose(u.atoms.angles[0].value(), angle)
 
     def test_type_c_general(self):
         """Test type c."""
         """Type c water molecules should have 4 atoms, 2 bonds, and 1 angle."""
-        u = nonmaicos.models.type_c(0.9572, 0.105, -1.054, 0.527, np.deg2rad(104.52))
+        u = solvate.models.type_c(0.9572, 0.105, -1.054, 0.527, np.deg2rad(104.52))
         assert u.atoms.n_atoms == 4
         assert len(u.atoms.bonds) == 2
         assert len(u.atoms.angles) == 1
@@ -137,7 +137,7 @@ class TestModels(object):
     @pytest.mark.parametrize("angle", (45, 90, 125, 180))
     def test_type_c_angle(self, angle):
         """Test type c angle."""
-        u = nonmaicos.models.type_c(0.9572, 0.105, -1.054, 0.527, np.deg2rad(angle))
+        u = solvate.models.type_c(0.9572, 0.105, -1.054, 0.527, np.deg2rad(angle))
         assert_allclose(u.atoms.angles[0].value(), angle)
 
     def test_spce(self):
@@ -146,7 +146,7 @@ class TestModels(object):
         This is a regression test, the values here should NEVER change.
         """
         # TODO: Check the values against a source, this is a regression test
-        u = nonmaicos.models.spce()
+        u = solvate.models.spce()
         assert u.atoms.n_atoms == 3
         assert len(u.atoms.bonds) == 2
         assert len(u.atoms.angles) == 1
@@ -171,7 +171,7 @@ class TestModels(object):
 
         This is a regression test, the values here should NEVER change.
         """
-        u = nonmaicos.models.tip4p_epsilon()
+        u = solvate.models.tip4p_epsilon()
         assert u.atoms.n_atoms == 4
         assert len(u.atoms.bonds) == 2
         assert len(u.atoms.angles) == 1

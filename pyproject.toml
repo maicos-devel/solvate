@@ -2,15 +2,14 @@
 # These are the assumed default build requirements from pip:
 # https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
 requires = [
-    "setuptools>=64.0.0",
-    "setuptools-git-versioning<2",
-    "versioneer[toml]",
+    "setuptools>=77",
+    "setuptools_scm >= 8",
     "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nonmaicos"
-description = "Quickly build confined geometries for MD simulations"
+name = "solvate"
+description = "Solvate confined geometries for MD simulations"
 authors = [{name = "MAICoS Developer Team"}]
 maintainers = [
     {name = "Henrik Stooß"},
@@ -45,30 +44,85 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-"Homepage" = "https://gitlab.com/maicos-devel/nonmaicos"
-"Bug Tracker" = "https://gitlab.com/maicos-devel/nonmaicos/issues"
+"Homepage" = "https://github.com/maicos-devel/solvate"
+"Bug Tracker" = "https://github.com/maicos-devel/solvate/issues"
 
-# configuration for the isort module
-[tool.isort]
-line_length = 80
-indent = 4
-multi_line_output = 3
-include_trailing_comma = true
-lines_after_imports = 2
-known_first_party = "nonmaicos"
-skip = ["_version.py", "versioneer.py"]
-
-[tool.pytest.ini_options]
-addopts = "-p pytest_cov"
-python_files = ["test_*.py", "*_test.py", "tests.py"]
-testpaths = "tests"
-
-[tool.versioneer]
-VCS = "git"
-style = "pep440"
-versionfile_source = "nonmaicos/_version.py"
-tag_prefix = "v"
+[tool.check-manifest]
+# ignore files missing in VCS
+ignore = ["src/solvate/_version.py"]
 
 [tool.mypy]
+exclude = ["docs/src/examples"]
 follow_imports = 'skip'
 ignore_missing_imports = true
+
+[tool.coverage.paths]
+source = ["src/solvate", "*/site-packages"]
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true
+
+[tool.pytest.ini_options]
+testpaths = "tests"
+python_files = ["test_*.py", "*_test.py", "tests.py"]
+addopts = [
+    "--cov",
+    "--cov-append",
+    "--cov-report=",
+    "--import-mode=append",
+    "--disable-warnings",
+]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+# See https://docs.astral.sh/ruff/rules for additional details
+extend-select = [
+    "F",  # Pyflakes checks (e.g., unused imports, undefined variables)
+    "B",  # Pyflakes-bugbear checks (e.g., unused imports, undefined variables)
+    "D",  # PEP 257 docstring conventions (e.g., formatting, consistency)
+    "E",  # Pycodestyle errors (e.g., indentation, whitespace, syntax)
+    "UP",  # PyUpgrade rules (e.g., upgrading to modern Python syntax)
+    "I",  # Import conventions (e.g., sorting imports, duplicate imports)
+    "SIM",  # Simplification suggestions (e.g., refactoring redundant code)
+    "PT",  # Pytest style rules (e.g., avoiding assert in tests)
+    "RET",  # Return statements consistency (e.g., avoiding multiple return paths)
+    "W",  # Warnings about style (e.g., trailing whitespace, blank lines)
+    "Q",  # Quotes consistency (e.g., single vs. double quotes)
+    "TD",  # TODO checks (e.g., TODO comments without author)
+    "LOG",  # Logging checks
+    "G",  # Logging formatting checks
+    "T20", # Check for print statements
+    "ARG", # Checks for unused arguments
+    "PTH", # Check for instances where pathlib should be used
+    "FLY",  # Checks for str.join() which can be written as f-strings
+    "TRY",  # Checks for try/except blocks
+]
+
+ignore = [
+    "D107",  # Missing docstring in __init__
+    "D203",  # 1 blank line required before class docstring
+    "D213",  # Multi-line docstring summary should start at the second line
+    "D400",  # First line should end with a period
+    "D401",  # First line should be in imperative mood
+    "D413",  # Missing blank line after last section
+    "D417",  # Missing argument description in the docstring for {definition}: {name}
+    "TRY003",  # Avoid specifying long messages outside the exception class
+    "TD003",  # Missing issue link for this TODO
+    "G004",  # f-strings in log messages
+    "LOG015",  # Logging using root logger #TODO(@PicoCentauri): Check this
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["solvate"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools_scm]
+version_file = "src/solvate/_version.py"

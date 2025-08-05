@@ -1,7 +1,7 @@
 CHANGELOG file
 --------------
 
-The rules for nonMAICoS' CHANGELOG file:
+The rules for solvate's CHANGELOG file:
 
 - entries are sorted newest-first.
 - summarize sets of changes (don't reproduce every git log comment here).

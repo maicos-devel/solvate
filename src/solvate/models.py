@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- Mode: python; tab-width: 4; indent-tabs-mode:nil; coding:utf-8 -*-
 #
 # Copyright (c) 2024 Authors and contributors
 # (see the AUTHORS.rst file for the full list of names)
@@ -15,8 +14,7 @@ import numpy as np
 
 
 def _three_site_molecule(theta: float) -> tuple:
-    """
-    Returns three coordinates for use in a three-site water model.
+    """Returns three coordinates for use in a three-site water model.
 
     Parameters
     ----------
@@ -36,12 +34,11 @@ def _three_site_molecule(theta: float) -> tuple:
     """
     if theta <= 0 or theta > np.pi:
         raise ValueError("theta must be in (0, pi]")
-    else:
-        pos_O = np.array([0.0, 0.0, 0.0], dtype=np.float32)
-        pos_H1 = np.array([1.0, 0.0, 0.0], dtype=np.float32)
-        pos_H2 = np.array([np.cos(theta), -np.sin(theta), 0.0], dtype=np.float32)
+    pos_O = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+    pos_H1 = np.array([1.0, 0.0, 0.0], dtype=np.float32)
+    pos_H2 = np.array([np.cos(theta), -np.sin(theta), 0.0], dtype=np.float32)
 
-        return pos_O, pos_H1, pos_H2
+    return pos_O, pos_H1, pos_H2
 
 
 def empty(dimensions: np.ndarray) -> mda.Universe:

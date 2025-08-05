@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- Mode: python; tab-width: 4; indent-tabs-mode:nil; coding:utf-8 -*-
 #
 # Copyright (c) 2024 Authors and contributors
 # (see the AUTHORS.rst file for the full list of names)
@@ -179,7 +178,7 @@ def SolvateCylinder(
             fudge_factor=new_fudge_factor,
         )
 
-    elif missingProjectiles < 0:
+    if missingProjectiles < 0:
         nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
         print("Too many projectiles inserted:", -missingProjectiles)
         print(nonTargetAtoms.n_atoms)
@@ -212,9 +211,8 @@ def SolvateCylinder(
         SolvatedUniverse.dimensions = dimensionsTarget
         print("Final number of atoms:", SolvatedUniverse.atoms.n_atoms)
         return SolvatedUniverse
-    else:
-        print("All projectiles inserted correctly")
-        return SolvatedUniverse
+    print("All projectiles inserted correctly")
+    return SolvatedUniverse
 
 
 def SolvatePlanar(
@@ -384,7 +382,7 @@ def SolvatePlanar(
             fudge_factor + 10 * missingProjectiles / n,
             tries,
         )
-    elif missingProjectiles < 0:
+    if missingProjectiles < 0:
         nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
         print("Too many projectiles inserted:", -missingProjectiles)
         print(nonTargetAtoms.n_atoms)
@@ -417,9 +415,8 @@ def SolvatePlanar(
         SolvatedUniverse.dimensions = dimensionsTarget
         print("Final number of atoms:", SolvatedUniverse.atoms.n_atoms)
         return SolvatedUniverse
-    else:
-        print("All projectiles inserted correctly")
-        return SolvatedUniverse
+    print("All projectiles inserted correctly")
+    return SolvatedUniverse
 
 
 def InsertPlanar(

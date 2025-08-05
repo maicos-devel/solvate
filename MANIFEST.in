@@ -1,12 +1,10 @@
-graft nonmaicos
+graft src
 
 include AUTHORS.rst
 include CHANGELOG.rst
 include versioneer.py
 include README.md
 include MANIFEST.in
-
-
 
 exclude example.ipynb
 exclude tests.py
