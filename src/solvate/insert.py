@@ -7,6 +7,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Build universes from template molecules."""
 
+import logging
 from typing import Optional
 
 import MDAnalysis as mda
@@ -14,6 +15,9 @@ import numpy as np
 from tqdm import tqdm
 
 from .models import empty
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def tile_universe(
@@ -81,7 +85,7 @@ def SolvateCylinder(
     fudge_factor: float = 1,
 ) -> mda.Universe:
     """Inserts `n` projectile atoms in a cylindrical zone (fast)."""
-    print(f"The fudge factor is {fudge_factor}")
+    logger.info(f"The fudge factor is {fudge_factor}")
     if max is None:
         max = TargetUniverse.dimensions[dim]
 
@@ -145,8 +149,8 @@ def SolvateCylinder(
             TargetAtoms, ProjectileAtoms[atomsInside].residues.atoms
         )
     SolvatedUniverse.dimensions = dims
-    print("Resulting number of atoms:", SolvatedUniverse.atoms.n_atoms)
-    print(
+    logger.info("Resulting number of atoms:", SolvatedUniverse.atoms.n_atoms)
+    logger.info(
         "Resulting number of projectiles:",
         (SolvatedUniverse.atoms.n_atoms - nAtomsTarget) / nAtomsProjectile,
     )
@@ -155,13 +159,15 @@ def SolvateCylinder(
         ((n * nAtomsProjectile + nAtomsTarget) - SolvatedUniverse.atoms.n_atoms)
         / nAtomsProjectile
     )
-    print("Missing", missingProjectiles, "Projectiles.")
+    logger.info("Missing", missingProjectiles, "Projectiles.")
     if solvate_by_density_flag:
-        print(f" {SolvatedUniverse.atoms.n_atoms - nAtomsTarget} projectiles inserted")
+        logger.info(
+            f" {SolvatedUniverse.atoms.n_atoms - nAtomsTarget} projectiles inserted"
+        )
         return SolvatedUniverse
     if missingProjectiles > 0:
-        print("Missing", missingProjectiles, "Projectiles.")
-        print("Adjusting fudge factor and trying again.")
+        logger.info("Missing", missingProjectiles, "Projectiles.")
+        logger.info("Adjusting fudge factor and trying again.")
         new_fudge_factor = fudge_factor + 0.5
         return SolvateCylinder(
             TargetUniverse,
@@ -180,11 +186,11 @@ def SolvateCylinder(
 
     if missingProjectiles < 0:
         nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
-        print("Too many projectiles inserted:", -missingProjectiles)
-        print(nonTargetAtoms.n_atoms)
-        print(nonTargetAtoms.residues.n_residues)
-        print(np.unique(nonTargetAtoms.residues.resids).shape)
-        print("Removing", -missingProjectiles, "randomly selected projectiles.")
+        logger.info("Too many projectiles inserted:", -missingProjectiles)
+        logger.info(nonTargetAtoms.n_atoms)
+        logger.info(nonTargetAtoms.residues.n_residues)
+        logger.info(np.unique(nonTargetAtoms.residues.resids).shape)
+        logger.info("Removing", -missingProjectiles, "randomly selected projectiles.")
         ToBeRemoved = nonTargetAtoms.residues[
             np.random.choice(
                 np.arange(len(nonTargetAtoms.residues)),
@@ -195,7 +201,7 @@ def SolvateCylinder(
         SolvatedUniverse = mda.Merge(SolvatedUniverse.atoms - ToBeRemoved.atoms)
         nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
         TargetAtoms = SolvatedUniverse.atoms[:nAtomsTarget]
-        print(
+        logger.info(
             len(TargetAtoms.residues),
             len(nonTargetAtoms.residues),
             len(SolvatedUniverse.residues),
@@ -209,9 +215,9 @@ def SolvateCylinder(
             ]
         )
         SolvatedUniverse.dimensions = dimensionsTarget
-        print("Final number of atoms:", SolvatedUniverse.atoms.n_atoms)
+        logger.info("Final number of atoms:", SolvatedUniverse.atoms.n_atoms)
         return SolvatedUniverse
-    print("All projectiles inserted correctly")
+    logger.info("All projectiles inserted correctly")
     return SolvatedUniverse
 
 
@@ -266,13 +272,13 @@ def SolvatePlanar(
     nAtomsTarget = TargetUniverse.atoms.n_atoms
     nAtomsProjectile = ProjectileUniverse.atoms.n_atoms
 
-    print(f"Should solvate {n} Projectiles")
+    logger.info(f"Should solvate {n} Projectiles")
     x = np.ceil((n / (solvate_factor * fudge_factor)) ** (1 / 3)).astype(int)
 
     if x <= 1:
         x = 1
-        print(f"Solvation factor: {solvate_factor}")
-        print(f"Best tiling is {x}x{x}x{x}.")
+        logger.info(f"Solvation factor: {solvate_factor}")
+        logger.info(f"Best tiling is {x}x{x}x{x}.")
 
         return InsertPlanar(
             TargetUniverse,
@@ -292,13 +298,13 @@ def SolvatePlanar(
 
     real_solvate_factor = n / (x**3)
 
-    print(f"Solvation factor: {solvate_factor}")
-    print(f"Best tiling is {x}x{x}x{x}.")
+    logger.info(f"Solvation factor: {solvate_factor}")
+    logger.info(f"Best tiling is {x}x{x}x{x}.")
 
     real_solvate_factor = np.ceil(real_solvate_factor * fudge_factor).astype(int)
 
-    print("Real solvation factor is", real_solvate_factor)
-    print(
+    logger.info("Real solvation factor is", real_solvate_factor)
+    logger.info(
         "This results in a total of",
         x**3 * (real_solvate_factor),
         "projectiles in the solvate box",
@@ -317,18 +323,18 @@ def SolvatePlanar(
 
     # We tile the small box to make a big box that is big enough to contain
     # the insertion domain
-    print("Tiling solvate box...")
+    logger.info("Tiling solvate box...")
     big_solvate_box = tile_universe(solvate_box, x, x, x)
 
     # Shift the solvate box to the beginning of the insertion domain
     big_solvate_box.atoms.translate(InsertionDomain[0:3])
 
-    print("Inserting solvate box into target universe...")
+    logger.info("Inserting solvate box into target universe...")
 
     nAtomsSolvate = big_solvate_box.atoms.n_atoms
 
-    print("Target atoms:", nAtomsTarget)
-    print("Projectile atoms:", nAtomsSolvate)
+    logger.info("Target atoms:", nAtomsTarget)
+    logger.info("Projectile atoms:", nAtomsSolvate)
 
     if nAtomsTarget == 0:
         SolvatedUniverse = big_solvate_box
@@ -338,7 +344,7 @@ def SolvatePlanar(
     target = SolvatedUniverse.atoms[0:nAtomsTarget]
     projectile = SolvatedUniverse.atoms[-nAtomsSolvate:]
 
-    print("Search for overlapping atoms...")
+    logger.info("Search for overlapping atoms...")
 
     ns = mda.lib.NeighborSearch.AtomNeighborSearch(
         projectile, SolvatedUniverse.dimensions
@@ -348,24 +354,26 @@ def SolvatePlanar(
         # touching_atoms = touching_atoms.intersection(projectile).residues.atoms
         # if touching_atoms.n_atoms / nAtomsProjectile:
 
-        print(
+        logger.info(
             "Removing touching projectiles:", touching_atoms.n_atoms / nAtomsProjectile
         )
         SolvatedUniverse = mda.Merge(SolvatedUniverse.atoms - touching_atoms)
         SolvatedUniverse.dimensions = dimensionsTarget
-    print("Resulting number of atoms:", SolvatedUniverse.atoms.n_atoms)
-    print("Expected number of atoms:", n * nAtomsProjectile + nAtomsTarget)
+    logger.info("Resulting number of atoms:", SolvatedUniverse.atoms.n_atoms)
+    logger.info("Expected number of atoms:", n * nAtomsProjectile + nAtomsTarget)
     missingProjectiles = int(
         ((n * nAtomsProjectile + nAtomsTarget) - SolvatedUniverse.atoms.n_atoms)
         / nAtomsProjectile
     )
 
     if density is not None:
-        print(f" {SolvatedUniverse.atoms.n_atoms - nAtomsTarget} projectiles inserted")
+        logger.info(
+            f" {SolvatedUniverse.atoms.n_atoms - nAtomsTarget} projectiles inserted"
+        )
         return SolvatedUniverse
     if missingProjectiles > 0:
-        print("Missing", missingProjectiles, "Projectiles.")
-        print("Adjusting fudge factor and trying again.")
+        logger.info("Missing", missingProjectiles, "Projectiles.")
+        logger.info("Adjusting fudge factor and trying again.")
         return SolvatePlanar(
             TargetUniverse,
             ProjectileUniverse,
@@ -384,11 +392,11 @@ def SolvatePlanar(
         )
     if missingProjectiles < 0:
         nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
-        print("Too many projectiles inserted:", -missingProjectiles)
-        print(nonTargetAtoms.n_atoms)
-        print(nonTargetAtoms.residues.n_residues)
-        print(np.unique(nonTargetAtoms.residues.resids).shape)
-        print("Removing", -missingProjectiles, "randomly selected projectiles.")
+        logger.info("Too many projectiles inserted:", -missingProjectiles)
+        logger.info(nonTargetAtoms.n_atoms)
+        logger.info(nonTargetAtoms.residues.n_residues)
+        logger.info(np.unique(nonTargetAtoms.residues.resids).shape)
+        logger.info("Removing", -missingProjectiles, "randomly selected projectiles.")
         ToBeRemoved = nonTargetAtoms.residues[
             np.random.choice(
                 np.arange(len(nonTargetAtoms.residues)),
@@ -399,7 +407,7 @@ def SolvatePlanar(
         SolvatedUniverse = mda.Merge(SolvatedUniverse.atoms - ToBeRemoved.atoms)
         nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
         TargetAtoms = SolvatedUniverse.atoms[:nAtomsTarget]
-        print(
+        logger.info(
             len(TargetAtoms.residues),
             len(nonTargetAtoms.residues),
             len(SolvatedUniverse.residues),
@@ -413,9 +421,9 @@ def SolvatePlanar(
             ]
         )
         SolvatedUniverse.dimensions = dimensionsTarget
-        print("Final number of atoms:", SolvatedUniverse.atoms.n_atoms)
+        logger.info("Final number of atoms:", SolvatedUniverse.atoms.n_atoms)
         return SolvatedUniverse
-    print("All projectiles inserted correctly")
+    logger.info("All projectiles inserted correctly")
     return SolvatedUniverse
 
 
@@ -556,9 +564,6 @@ def InsertSphere(
     n: int = 1,
     pos: Optional[np.ndarray] = None,
     radius: Optional[float] = None,
-    xmax: Optional[float] = None,
-    ymax: Optional[float] = None,
-    zmax: Optional[float] = None,
     distance: float = 1.25,
     tries: int = 1000,
 ) -> mda.Universe:
