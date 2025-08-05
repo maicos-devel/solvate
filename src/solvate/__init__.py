@@ -1,7 +1,4 @@
-"""solvate
-
-A MD manipulation library.
-"""
+"""solvate: An MD manipulation library."""
 
 __authors__ = "MAICoS Developer Team"
 
