@@ -44,3 +44,4 @@ Feel free to open issues and submit pull requests.
 - [packmol](https://github.com/m3g/packmol)
 - [mdapackmol](https://github.com/MDAnalysis/MDAPackmol)
 - [moltemplate](https://moltemplate.org/)
+- [autosolvate](https://autosolvate.readthedocs.io/en/latest/)
