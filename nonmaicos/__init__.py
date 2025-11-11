@@ -14,6 +14,7 @@ from .insert import (
     InsertSphere,
     SolvateCylinder,
     SolvatePlanar,
+    SolvatePlanarPB,
 )
 
 
