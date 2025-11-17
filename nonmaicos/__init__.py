@@ -14,7 +14,11 @@ from .insert import (
     InsertSphere,
     SolvateCylinder,
     SolvatePlanar,
-    SolvatePlanarPB,
+    InsertPlanarFromDistribution,
+)
+from .lib import (
+    PBTwoPlates,
+    PBTwoPlates2
 )
 
 
@@ -24,7 +28,10 @@ __all__ = [
     "InsertSphere",
     "SolvatePlanar",
     "SolvateCylinder",
+    "InsertPlanarFromDistribution",
     "models",
+    "PBTwoPlates",
+    "PBTwoPlates2",
 ]
 
 from . import _version

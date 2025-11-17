@@ -8,14 +8,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Build universes from template molecules."""
 
-from typing import Optional
+from typing import Callable
 
 from matplotlib.path import Path
+import matplotlib.pyplot as plt
 
 import MDAnalysis as mda
 import numpy as np
 from tqdm import tqdm
-import matplotlib.pyplot as plt
+
+from .models import empty
 
 from scipy.constants import N_A, epsilon_0, k as kB, e as e_el
 from pint import UnitRegistry
@@ -27,8 +29,6 @@ N_A       *= Q_('1/mol')
 epsilon_0 *= Q_('F/m')
 e_el      *= Q_('C')
 kB        *= Q_('J/K')
-
-from .models import empty
 
 
 def tile_universe(
@@ -85,11 +85,11 @@ def SolvateCylinder(
     TargetUniverse: mda.Universe,
     ProjectileUniverse: mda.Universe,
     n: int = 1,
-    density: Optional[float] = None,
-    pos: Optional[np.ndarray] = None,
-    radius: Optional[float] = None,
+    density: float | None = None,
+    pos: np.ndarray | None = None,
+    radius: float | None = None,
     min: float = 0,
-    max: Optional[float] = None,
+    max: float | None = None,
     dim: int = 2,
     distance: float = 1.25,
     tries: int = 1000,
@@ -235,13 +235,13 @@ def SolvatePlanar(
     TargetUniverse: mda.Universe,
     ProjectileUniverse: mda.Universe,
     n: int = 1,
-    density: Optional[float] = None,
+    density: float | None = None,
     xmin: int = 0,
     ymin: int = 0,
     zmin: int = 0,
-    xmax: Optional[float] = None,
-    ymax: Optional[float] = None,
-    zmax: Optional[float] = None,
+    xmax: float | None = None,
+    ymax: float | None = None,
+    zmax: float | None = None,
     distance: float = 1.25,
     solvate_factor: int = 100,
     fudge_factor: float = 1.0,
@@ -475,9 +475,9 @@ def InsertPlanar(
     xmin: int = 0,
     ymin: int = 0,
     zmin: int = 0,
-    xmax: Optional[float] = None,
-    ymax: Optional[float] = None,
-    zmax: Optional[float] = None,
+    xmax: float | None = None,
+    ymax: float | None = None,
+    zmax: float | None = None,
     distance: float = 1.25,
     tries: int = 1000,
 ) -> mda.Universe:
@@ -537,10 +537,10 @@ def InsertCylinder(
     TargetUniverse: mda.Universe,
     ProjectileUniverse: mda.Universe,
     n: int = 1,
-    pos: Optional[np.ndarray] = None,
-    radius: Optional[float] = None,
+    pos: np.ndarray | None = None,
+    radius: float | None = None,
     min: float = 0,
-    max: Optional[float] = None,
+    max: float | None = None,
     dim: int = 2,
     distance: float = 1.25,
     tries: int = 1000,
@@ -603,11 +603,11 @@ def InsertSphere(
     TargetUniverse: mda.Universe,
     ProjectileUniverse: mda.Universe,
     n: int = 1,
-    pos: Optional[np.ndarray] = None,
-    radius: Optional[float] = None,
-    xmax: Optional[float] = None,
-    ymax: Optional[float] = None,
-    zmax: Optional[float] = None,
+    pos: np.ndarray | None = None,
+    radius: float | None = None,
+    xmax: float | None = None,
+    ymax: float | None = None,
+    zmax: float | None = None,
     distance: float = 1.25,
     tries: int = 1000,
 ) -> mda.Universe:
@@ -683,6 +683,154 @@ def InsertSphere(
     return TargetUniverse
 
 
+
+
+def InsertPlanarFromDistribution(
+    TargetUniverse: mda.Universe,
+    ProjectileUniverse: mda.Universe,
+    n: int = 1,
+    xmin: int = 0,
+    ymin: int = 0,
+    zmin: int = 0,
+    xmax: float | None = None,
+    ymax: float | None = None,
+    zmax: float | None = None,
+    distance: float = 1.25,
+    propability: Callable | None = None,
+    n_points: int = 1000,
+    fudge_factor: float = 1.2,
+    tries: int = 1000,
+) -> mda.Universe:
+
+
+    def insert_ions(TargetUniverse, ProjectileUniverse, InsertionDomain, z_positions, n, distance, tries):
+        """
+        Insert ions into the target universe at specified z positions.
+
+        Positional arguments:
+        TargetUniverse   -- The universe to insert ions into.
+        ProjectileUniverse -- The universe containing the ions to insert.
+        z_positions       -- The z positions to insert the ions at.
+        distance          -- Minimum distance between inserted ions and existing atoms.
+        tries             -- Number of attempts to find a valid insertion position.
+
+        Returns:
+        Updated TargetUniverse with inserted ions.
+        """
+
+        nAtomsProjectile = ProjectileUniverse.atoms.n_atoms
+        dimensionsTarget = TargetUniverse.dimensions.copy()
+        nAtomsStart = TargetUniverse.atoms.n_atoms
+
+        if TargetUniverse.atoms.n_atoms == 0:
+            TargetUniverse = ProjectileUniverse.copy()
+            TargetUniverse.dimensions = dimensionsTarget
+
+            t_vec = pos_random(InsertionDomain) - ProjectileUniverse.atoms.center_of_geometry()
+            first_z_position = z_positions[0]
+            z_positions = np.delete(z_positions, 0) # Remove the first z position as it's already used
+
+
+            t_vec[2] = first_z_position - ProjectileUniverse.atoms.center_of_geometry()[2]
+            TargetUniverse.atoms.translate(
+                t_vec
+            )
+            TargetUniverse.atoms.rotateby(*rot_random())
+
+
+        while True:
+            nAtomsTarget = TargetUniverse.atoms.n_atoms
+
+            TargetUniverse = mda.Merge(TargetUniverse.atoms, ProjectileUniverse.atoms)
+            TargetUniverse.dimensions = dimensionsTarget
+
+            target = TargetUniverse.atoms[0:nAtomsTarget]
+            projectile = TargetUniverse.atoms[-nAtomsProjectile:]
+            ns = mda.lib.NeighborSearch.AtomNeighborSearch(target, dimensionsTarget)
+
+            for _attempt in range(tries):
+                t_vec = pos_random(InsertionDomain) - projectile.atoms.center_of_geometry()
+                if len(z_positions) == 0:
+                    raise RuntimeError(
+                        "Error: No more z positions available for insertion. Increase the fudge factor and try again."
+                    )
+                next_z = z_positions[0]
+                z_positions = np.delete(z_positions, 0) # Remove the first z position as it's already used
+
+                t_vec[2] = next_z - projectile.atoms.center_of_geometry()[2]
+                projectile.translate(t_vec)
+                projectile.rotateby(*rot_random())
+
+                if len(ns.search(projectile, distance)) == 0:
+                    break
+            else:
+                raise RuntimeError(
+                    "Error: No suitable position found,\
+                    maybe you are trying to insert to many particles? Aborting."
+                )
+
+            projectile.residues.resids = (
+                projectile.residues.resids + target.residues.resids[-1]
+            )
+            if TargetUniverse.atoms.n_atoms - nAtomsStart >= n * nAtomsProjectile:
+                break
+        return TargetUniverse
+
+    # Check TargetUniverse dimensions
+    if TargetUniverse.dimensions is None:
+        raise ValueError("TargetUniverse must have defined dimensions.")
+    if xmax is None:
+        xmax = TargetUniverse.dimensions[0]
+    if ymax is None:
+        ymax = TargetUniverse.dimensions[1]
+    if zmax is None:
+        zmax = TargetUniverse.dimensions[2]
+    if xmin is None:
+        xmin = 0
+    if ymin is None:
+        ymin = 0
+    if zmin is None:
+        zmin = 0
+
+    # Define insertion domain
+    InsertionDomain = np.array([xmin, ymin, zmin, xmax, ymax, zmax])
+    for i in np.arange(3):
+        if InsertionDomain[i + 3] is None:
+            InsertionDomain[i + 3] = TargetUniverse.dimensions[i]
+    InsertionDomainSize = (InsertionDomain[3:6] - InsertionDomain[0:3]) * Q_('angstrom')
+    dimensionsTarget = TargetUniverse.dimensions.copy()
+
+    # Calculate bulk concentration --> needed for Debye length
+    volume = (InsertionDomainSize[0]
+              * InsertionDomainSize[1]
+              * InsertionDomainSize[2])
+
+    # Draw more than needed ions to account for rejections during insertion
+    # NIonsToDraw = np.ceil(n * fudge_factor).astype(int)
+
+    z = np.linspace(zmin, zmax, n_points)
+    if propability is None:
+        raise ValueError("A probability distribution function must be provided.")
+    else:
+        try:
+            p = propability.calculate_p(z)
+        except Exception as e:
+            raise ValueError("The provided probability function is not valid.") from e
+        
+    positionsToDraw = int(np.ceil(n * fudge_factor))
+
+    samples = np.random.choice(len(p), size=positionsToDraw, p=p)
+    # Convert indices to z positions
+    z_positions = z[samples]
+
+
+    # Insert ions into the TargetUniverse
+    TargetUniverse = insert_ions(TargetUniverse, ProjectileUniverse, InsertionDomain, z_positions, n, distance, tries)
+
+    return TargetUniverse
+
+
+
 def SolvatePlanarPB(
     TargetUniverse: mda.Universe,
     AnionProjectileUniverse: mda.Universe,
@@ -695,14 +843,14 @@ def SolvatePlanarPB(
     xmin: int = 0,
     ymin: int = 0,
     zmin: int = 0,
-    xmax: Optional[float] = None,
-    ymax: Optional[float] = None,
-    zmax: Optional[float] = None,
+    xmax: float | None = None,
+    ymax: float | None = None,
+    zmax: float | None = None,
     distance: float = 1.25,
     fudge_factor: float = 1.5,
     tries: int = 100,
     plot: bool = False,
-    output_path: Optional[str] = None,
+    output_path: float | None = None,
 ) -> mda.Universe:
     """
     Inserts ions into a system with plate capacitor geometry according to a Poisson-Boltzmann distribution.
