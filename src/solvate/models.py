@@ -60,30 +60,6 @@ def empty(dimensions: np.ndarray) -> mda.Universe:
     return u
 
 
-def spce() -> mda.Universe:
-    """Returns the SPC/E water model."""
-    l_1 = 1
-
-    q_H = 0.4238
-    q_O = -2 * q_H
-    theta = np.deg2rad(109.47)
-
-    return type_a(l_1, q_O, q_H, theta)
-
-
-def tip4p_epsilon() -> mda.Universe:
-    """Returns the TIP4P/ε water model."""
-    l_1 = 0.9572
-    l_2 = 0.105
-
-    q_H = 0.5270
-    q_M = -2 * q_H
-
-    theta = np.deg2rad(104.52)
-
-    return type_c(l_1, l_2, q_M, q_H, theta)
-
-
 def type_a(
     l_1: float,
     q_O: float,
@@ -156,3 +132,37 @@ def type_c(
     model.atoms.positions = np.array([pos_O, pos_H1, pos_H2, pos_M])
 
     return model
+
+
+def spce() -> mda.Universe:
+    """Returns the SPC/E water model."""
+    l_1 = 1
+
+    q_H = 0.4238
+    q_O = -2 * q_H
+    theta = np.deg2rad(109.47)
+
+    return type_a(l_1, q_O, q_H, theta)
+
+
+def tip3p():
+    l_1 = 0.9572
+
+    q_H = 0.417
+    q_O = -2 * q_H
+    theta = np.deg2rad(104.52)
+
+    return type_a(l_1, q_O, q_H, theta)
+
+
+def tip4p_epsilon() -> mda.Universe:
+    """Returns the TIP4P/ε water model."""
+    l_1 = 0.9572
+    l_2 = 0.105
+
+    q_H = 0.5270
+    q_M = -2 * q_H
+
+    theta = np.deg2rad(104.52)
+
+    return type_c(l_1, l_2, q_M, q_H, theta)
