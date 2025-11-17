@@ -146,6 +146,7 @@ def spce() -> mda.Universe:
 
 
 def tip3p():
+    """Returns the TIP3P water model."""
     l_1 = 0.9572
 
     q_H = 0.417
