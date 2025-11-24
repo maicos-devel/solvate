@@ -1,9 +1,11 @@
 *.egg-info
 *.pyc
 .tox/
+build/
 
 .coverage
 coverage.xml
 report.xml
 *.tar.gz
 *.whl
+_version.py

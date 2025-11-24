@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- Mode: python; tab-width: 4; indent-tabs-mode:nil; coding:utf-8 -*-
 #
 # Copyright (c) 2024 Authors and contributors
 # (see the AUTHORS.rst file for the full list of names)
@@ -15,8 +14,7 @@ import numpy as np
 
 
 def _three_site_molecule(theta: float) -> tuple:
-    """
-    Returns three coordinates for use in a three-site water model.
+    """Returns three coordinates for use in a three-site water model.
 
     Parameters
     ----------
@@ -36,12 +34,11 @@ def _three_site_molecule(theta: float) -> tuple:
     """
     if theta <= 0 or theta > np.pi:
         raise ValueError("theta must be in (0, pi]")
-    else:
-        pos_O = np.array([0.0, 0.0, 0.0], dtype=np.float32)
-        pos_H1 = np.array([1.0, 0.0, 0.0], dtype=np.float32)
-        pos_H2 = np.array([np.cos(theta), -np.sin(theta), 0.0], dtype=np.float32)
+    pos_O = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+    pos_H1 = np.array([1.0, 0.0, 0.0], dtype=np.float32)
+    pos_H2 = np.array([np.cos(theta), -np.sin(theta), 0.0], dtype=np.float32)
 
-        return pos_O, pos_H1, pos_H2
+    return pos_O, pos_H1, pos_H2
 
 
 def empty(dimensions: np.ndarray) -> mda.Universe:
@@ -61,30 +58,6 @@ def empty(dimensions: np.ndarray) -> mda.Universe:
 
     u.dimensions = dimensions
     return u
-
-
-def spce() -> mda.Universe:
-    """Returns the SPC/E water model."""
-    l_1 = 1
-
-    q_H = 0.4238
-    q_O = -2 * q_H
-    theta = np.deg2rad(109.47)
-
-    return type_a(l_1, q_O, q_H, theta)
-
-
-def tip4p_epsilon() -> mda.Universe:
-    """Returns the TIP4P/ε water model."""
-    l_1 = 0.9572
-    l_2 = 0.105
-
-    q_H = 0.5270
-    q_M = -2 * q_H
-
-    theta = np.deg2rad(104.52)
-
-    return type_c(l_1, l_2, q_M, q_H, theta)
 
 
 def type_a(
@@ -159,3 +132,38 @@ def type_c(
     model.atoms.positions = np.array([pos_O, pos_H1, pos_H2, pos_M])
 
     return model
+
+
+def spce() -> mda.Universe:
+    """Returns the SPC/E water model."""
+    l_1 = 1
+
+    q_H = 0.4238
+    q_O = -2 * q_H
+    theta = np.deg2rad(109.47)
+
+    return type_a(l_1, q_O, q_H, theta)
+
+
+def tip4p_epsilon() -> mda.Universe:
+    """Returns the TIP4P/ε water model."""
+    l_1 = 0.9572
+    l_2 = 0.105
+
+    q_H = 0.5270
+    q_M = -2 * q_H
+
+    theta = np.deg2rad(104.52)
+
+    return type_c(l_1, l_2, q_M, q_H, theta)
+
+
+def tip3p():
+    """Returns the TIP3P water model."""
+    l_1 = 0.9572
+
+    q_H = 0.417
+    q_O = -2 * q_H
+    theta = np.deg2rad(104.52)
+
+    return type_a(l_1, q_O, q_H, theta)

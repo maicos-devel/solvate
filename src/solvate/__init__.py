@@ -1,13 +1,10 @@
-"""
-nonmaicos
-
-A MD manipulation library.
-"""
+"""solvate: An MD manipulation library."""
 
 __authors__ = "MAICoS Developer Team"
 
 
 from . import models
+from ._version import __version__  # noqa: F401
 from .insert import (
     InsertCylinder,
     InsertPlanar,
@@ -21,7 +18,6 @@ from .lib import (
     PBTwoPlates2
 )
 
-
 __all__ = [
     "InsertPlanar",
     "InsertCylinder",
@@ -33,8 +29,3 @@ __all__ = [
     "PBTwoPlates",
     "PBTwoPlates2",
 ]
-
-from . import _version
-
-
-__version__ = _version.get_versions()["version"]
