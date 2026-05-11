@@ -19,6 +19,7 @@ prune .github
 
 exclude .gitattributes
 exclude .gitignore
+exclude .readthedocs.yml
 exclude tox.ini
 
 global-exclude *.py[cod] __pycache__/* *.so *.dylib
