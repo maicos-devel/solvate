@@ -1,5 +1,10 @@
 graft src
 
+graft docs/src
+graft docs/static
+include docs/requirements.txt
+
+
 include AUTHORS.rst
 include CHANGELOG.rst
 include README.md
@@ -10,6 +15,7 @@ exclude example.ipynb
 prune tests
 prune developer
 prune .tox
+prune .github
 
 exclude .gitattributes
 exclude .gitignore

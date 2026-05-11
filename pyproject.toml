@@ -43,8 +43,9 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-"Homepage" = "https://github.com/maicos-devel/solvate"
-"Bug Tracker" = "https://github.com/maicos-devel/solvate/issues"
+"documentation" = "https://mda-solvate.readthedocs.io"
+"issues" = "https://github.com/maicos-devel/solvate/issues"
+"repository" = "https://github.com/maicos-devel/solvate"
 
 [tool.check-manifest]
 # ignore files missing in VCS
