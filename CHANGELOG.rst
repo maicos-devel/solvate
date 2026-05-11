@@ -15,6 +15,7 @@ Unreleased
 ----------
 Henrik Stooß, Philip Loche, Kira Fischer
 
+- Add .readthedocs.yml to manifest (#11)
 - Add documentation and README.md (#10)
 - Add CI (#2)
 - Rename nonMAICoS to solvate, move repository to GitHub
