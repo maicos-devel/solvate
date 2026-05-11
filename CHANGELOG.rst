@@ -15,6 +15,7 @@ Unreleased
 ----------
 Henrik Stooß, Philip Loche, Kira Fischer
 
+- Make projectile residues always monotonic (#19)
 - Add .readthedocs.yml to manifest (#18)
 - Add documentation and README.md (#10)
 - Add CI (#2)
