@@ -43,6 +43,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
+"documentation" = "https://mda-solvate.readthedocs.io"
 "issues" = "https://github.com/maicos-devel/solvate/issues"
 "repository" = "https://github.com/maicos-devel/solvate"
 
