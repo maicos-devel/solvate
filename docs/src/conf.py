@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2025 Authors and contributors
+# Copyright (c) 2026 Authors and contributors
 # (see the AUTHORS.rst file for the full list of names)
 #
 # Released under the GNU Public Licence, v3 or any higher version
@@ -13,23 +13,19 @@ the documentation: http://www.sphinx-doc.org/en/master/config
 """
 
 from datetime import datetime
+from importlib.metadata import metadata
 from pathlib import Path
 
 # -- Path setup --------------------------------------------------------------
-import tomli
-
-import solvate
 
 ROOT = Path("../../")
 
 # -- Project information -----------------------------------------------------
 
-with Path(ROOT / "pyproject.toml").open(mode="rb") as fp:
-    project_dict = tomli.load(fp)["project"]
-
-project = project_dict["name"]
-author = solvate.__authors__
-version = solvate.__version__
+project = "solvate"
+project_dict = metadata(project)
+author = project_dict["Author"]
+version = project_dict["Version"]
 copyright = f"{datetime.now().date().year}, {author}"
 
 # -- General configuration ---------------------------------------------------
@@ -94,13 +90,22 @@ html_theme = "furo"
 html_title = "MAICoS"
 html_favicon = "../static/logo.ico"
 html_static_path = ["../static"]
+repository_url = next(
+    (
+        url
+        for label, url in (
+            i.split(", ") for i in project_dict.get_all("Project-URL") or []
+        )
+        if label == "repository"
+    )
+)
 
 html_theme_options = {
     "navigation_with_keys": True,
     "footer_icons": [
         {
             "name": "GitHub",
-            "url": project_dict["urls"]["repository"],
+            "url": repository_url,
             "html": "",
             "class": "fa-brands fa-github fa-2x",
         },

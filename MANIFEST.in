@@ -15,6 +15,7 @@ exclude example.ipynb
 prune tests
 prune developer
 prune .tox
+prune .github
 
 exclude .gitattributes
 exclude .gitignore

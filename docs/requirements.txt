@@ -1,3 +1,2 @@
-sphinx
-tomli
 furo
+sphinx

@@ -15,7 +15,7 @@ Unreleased
 ----------
 Henrik Stooß, Philip Loche, Kira Fischer
 
-- Add documentation skeleton and README.m
+- Add documentation and README.md (#10)
 - Add CI (#2)
 - Rename nonMAICoS to solvate, move repository to GitHub
 - Fix wrong angles in water models (!6)
