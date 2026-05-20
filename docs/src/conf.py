@@ -12,13 +12,17 @@ This file does only contain a selection of the most common options. For a full l
 the documentation: http://www.sphinx-doc.org/en/master/config
 """
 
+import sys
 from datetime import datetime
 from importlib.metadata import metadata
 from pathlib import Path
 
 # -- Path setup --------------------------------------------------------------
 
-ROOT = Path("../../")
+ROOT = Path(__file__).resolve().parents[2]
+# Make the in-tree package importable for autodoc when building locally
+# without first installing solvate.
+sys.path.insert(0, str(ROOT / "src"))
 
 # -- Project information -----------------------------------------------------
 
@@ -39,24 +43,6 @@ extensions = [
     "sphinx.ext.mathjax",  # Render math via JavaScript
     "sphinx.ext.napoleon",  # Support for NumPy and Google style docstrings
 ]
-
-# The path to the bibtex file
-bibtex_bibfiles = ["../static/refs.bib"]
-bibtex_default_style = "unsrt"
-bibtex_reference_style = "author_year"
-
-sphinx_gallery_conf = {
-    "copyfile_regex": r".*\.(tpr|trr|xtc)",
-    "default_thumb_file": (ROOT / "docs/static/logo.svg").absolute(),
-    "example_extensions": {".py", ".sh"},
-    "examples_dirs": "../../examples",
-    "filename_pattern": r"\.py",
-    "gallery_dirs": "examples",
-    "min_reported_time": 60,
-    "prefer_full_module": ["maicos"],
-    "reference_url": {"maicos": None},
-    "remove_config_comments": True,
-}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -84,10 +70,18 @@ exclude_patterns: list[str] = []
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "tango"
 
+# -- Autodoc -----------------------------------------------------------------
+
+autodoc_default_options = {
+    "members": True,
+    "show-inheritance": True,
+}
+autodoc_typehints = "description"
+
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = "furo"
-html_title = "MAICoS"
+html_title = "solvate"
 html_favicon = "../static/logo.ico"
 html_static_path = ["../static"]
 repository_url = next(
@@ -126,25 +120,12 @@ html_css_files = [
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "MAICoSdoc"
+htmlhelp_basename = "solvatedoc"
 
 
 # -- Options for LaTeX output ------------------------------------------------
 
-latex_elements: dict[str, str] = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #
-    # 'papersize': 'letterpaper',
-    # The font size ('10pt', '11pt' or '12pt').
-    #
-    # 'pointsize': '10pt',
-    # Additional stuff for the LaTeX preamble.
-    #
-    # 'preamble': '',
-    # Latex figure (float) alignment
-    #
-    # 'figure_align': 'htbp',
-}
+latex_elements: dict[str, str] = {}
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
@@ -152,8 +133,8 @@ latex_elements: dict[str, str] = {
 latex_documents = [
     (
         master_doc,
-        "MAICoS.tex",
-        "MAICoS Documentation",
+        "solvate.tex",
+        "solvate Documentation",
         "see the file AUTHORS for the full list of names",
         "manual",
     ),
@@ -164,7 +145,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "maicos", "MAICoS Documentation", [author], 1)]
+man_pages = [(master_doc, "solvate", "solvate Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output ----------------------------------------------
@@ -175,11 +156,11 @@ man_pages = [(master_doc, "maicos", "MAICoS Documentation", [author], 1)]
 texinfo_documents = [
     (
         master_doc,
-        "MAICoS",
-        "MAICoS Documentation",
+        "solvate",
+        "solvate Documentation",
         author,
-        "MAICoS",
-        "One line description of project.",
+        "solvate",
+        "Solvate confined geometries for MD simulations.",
         "Miscellaneous",
     ),
 ]
@@ -190,15 +171,6 @@ texinfo_documents = [
 # Bibliographic Dublin Core info.
 epub_title = project
 
-# The unique identifier of the text. This can be a ISBN number
-# or the project homepage.
-#
-# epub_identifier = ''
-
-# A unique identification for the text.
-#
-# epub_uid = ''
-
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ["search.html"]
 
@@ -206,7 +178,7 @@ epub_exclude_files = ["search.html"]
 # -- Extension configuration -------------------------------------------------
 
 # Configuration for intersphinx: refer to the Python standard library
-# and other packages used by MAICoS
+# and other packages used by solvate.
 intersphinx_mapping = {
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
