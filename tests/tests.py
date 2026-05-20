@@ -38,7 +38,7 @@ def _make_universe(atoms_per_res, resids):
 
 
 class TestInserts:
-    """Test the insertion code."""
+    """Test for the insertion code."""
 
     @pytest.mark.parametrize("n_water", [1, 10, 100])
     def test_insert_planar_n_water(self, n_water):
@@ -48,29 +48,6 @@ class TestInserts:
         u = solvate.InsertSphere(emptyUniverse, testParticle, n_water)
         assert u.atoms.n_atoms == n_water * 3
 
-    # TODO(@hejamu): def test_insert_planar_density(self):
-    #     """Test the density of the inserted particles in InsertPlanar."""
-
-    # TODO(@hejamu): def test_insert_sphere_n_water(self):
-    #     """Test the number of inserted particles in InsertSphere."""
-
-    # TODO(@hejamu): def test_insert_sphere_density(self):
-    #     """Test the density of the inserted particles in InsertSphere."""
-
-    # TODO(@hejamu): def test_insert_cylinder_n_water(self):
-    #     """Test the number of inserted particles in InsertCylinder."""
-
-    # TODO(@hejamu): def test_insert_cylinder_density(self):
-    #     """Test the density of the inserted particles in InsertCylinder."""
-
-    # TODO(@hejamu): def test_insert_planar_domain(self):
-    #     """Test the domain of the inserted particles in InsertPlanar."""
-
-    # TODO(@hejamu): def test_insert_sphere_domain(self):
-    #     """Test the domain of the inserted particles in InsertSphere."""
-
-    # TODO(@hejamu): def test_insert_cylinder_domain(self):
-    #     """Test the domain of the inserted particles in InsertCylinder."""
 
 class TestInsertPlanar:
     """Tests for InsertPlanar."""
@@ -104,6 +81,33 @@ class TestInsertPlanar:
         )
         u = solvate.InsertPlanar(target, solvate.models.spce(), 3)
         assert list(u.residues.resids) == [1, 2, 3, 4, 5]
+
+    def test_default_domain_is_target_box(self):
+        """Without explicit bounds, COGs lie inside the target's box."""
+        box_l = 30.0
+        u = solvate.InsertPlanar(
+            solvate.models.empty([box_l] * 3 + [90, 90, 90]),
+            solvate.models.spce(),
+            20,
+        )
+        cogs = np.array([r.atoms.center_of_geometry() for r in u.residues])
+        assert (cogs >= 0).all()
+        assert (cogs <= box_l).all()
+
+    def test_explicit_bounds(self):
+        """Explicit xmin/xmax etc. constrain inserted molecules' COGs."""
+        bounds = dict(xmin=5.0, xmax=15.0, ymin=8.0, ymax=22.0, zmin=10.0, zmax=25.0)
+        u = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=20,
+            **bounds,
+        )
+        cogs = np.array([r.atoms.center_of_geometry() for r in u.residues])
+        lo = np.array([bounds["xmin"], bounds["ymin"], bounds["zmin"]])
+        hi = np.array([bounds["xmax"], bounds["ymax"], bounds["zmax"]])
+        assert (cogs >= lo).all()
+        assert (cogs <= hi).all()
 
 
 class TestInsertSphere:
@@ -139,6 +143,22 @@ class TestInsertSphere:
         u = solvate.InsertSphere(target, solvate.models.spce(), 3)
         assert list(u.residues.resids) == [1, 2, 3, 4, 5]
 
+    def test_inside_sphere(self):
+        """COGs of inserted molecules lie within ``radius`` of ``pos``."""
+        radius = 10.0
+        center = np.array([15.0, 15.0, 15.0])
+        u = solvate.InsertSphere(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=20,
+            pos=center.copy(),
+            radius=radius,
+        )
+        cogs = np.array([r.atoms.center_of_geometry() for r in u.residues])
+        distances = np.linalg.norm(cogs - center, axis=1)
+        # Small tolerance for the float32 positions used internally.
+        assert (distances <= radius + 1e-3).all()
+
 
 class TestInsertCylinder:
     """Tests for InsertCylinder.
@@ -169,27 +189,172 @@ class TestInsertCylinder:
         u = solvate.InsertCylinder(target, solvate.models.spce(), n)
         assert list(u.residues.resids) == list(range(1, 2 + n + 1))
 
+    @pytest.mark.parametrize("dim", [0, 1, 2])
+    def test_inside_cylinder(self, dim):
+        """Inserted COGs sit inside the cylinder (radial and axial bounds)."""
+        target = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            1,
+        )
+        radius = 8.0
+        axis_min, axis_max = 5.0, 25.0
+        center = np.array([15.0, 15.0, 15.0])
+        u = solvate.InsertCylinder(
+            target,
+            solvate.models.spce(),
+            n=10,
+            pos=center.copy(),
+            radius=radius,
+            min=axis_min,
+            max=axis_max,
+            dim=dim,
+        )
+        # Skip the target molecule
+        projectile_residues = u.residues[1:]
+        other_axes = [i for i in range(3) if i != dim]
+        for res in projectile_residues:
+            cog = res.atoms.center_of_geometry()
+            assert axis_min <= cog[dim] <= axis_max
+            radial = np.linalg.norm(cog[other_axes] - center[other_axes])
+            assert radial <= radius + 1e-3
 
-# class TestSolvate(object):
-#     """Test the solvation code."""
 
-# TODO(@hejamu): test_solvate_planar_n_water(self):
-#     """Test the solvation of a planar system."""
+class TestSolvatePlanar:
+    """Tests for SolvatePlanar."""
 
-# TODO(@hejamu): test_solvate_sphere_n_water(self):
-#     """Test the solvation of a spherical system."""
+    @pytest.mark.parametrize("n", [10, 50])
+    def test_exact_n(self, n):
+        """With ``n`` specified, SolvatePlanar produces exactly n molecules."""
+        u = solvate.SolvatePlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=n,
+        )
+        assert len(u.residues) == n
+        assert u.atoms.n_atoms == n * 3
 
-# TODO(@hejamu): test_solvate_cylinder_n_water(self):
-#     """Test the solvation of a cylindrical system."""
+    def test_density(self):
+        """With ``density`` specified, the result is close to density * V."""
+        box_l = 30.0
+        density = 0.01  # molecules / Å^3
+        u = solvate.SolvatePlanar(
+            solvate.models.empty([box_l] * 3 + [90, 90, 90]),
+            solvate.models.spce(),
+            density=density,
+        )
+        expected = density * box_l**3
+        # Pruning of overlaps may remove some molecules, so allow a generous
+        # tolerance band.
+        assert 0.5 * expected <= len(u.residues) <= 1.2 * expected
 
-# TODO(@hejamu): test_solvate_planar_density(self):
-#     """Test the density of the solvated system."""
+    def test_resids_contiguous(self):
+        """Resids of inserted projectiles are contiguous starting at 1."""
+        n = 30
+        u = solvate.SolvatePlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=n,
+        )
+        assert list(u.residues.resids) == list(range(1, n + 1))
 
-# TODO(@hejamu): test_solvate_sphere_density(self):
-#     """Test the density of the solvated system."""
+    def test_resids_continue_from_target(self):
+        """Projectile resids continue after target resids."""
+        target = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            2,
+        )
+        n = 20
+        u = solvate.SolvatePlanar(target, solvate.models.spce(), n=n)
+        assert list(u.residues.resids) == list(range(1, 2 + n + 1))
 
-# TODO(@hejamu): test_solvate_cylinder_density(self):
-#     """Test the density of the solvated system."""
+    def test_inside_box(self):
+        """All inserted molecules land inside the requested box."""
+        bounds = dict(xmin=5.0, xmax=20.0, ymin=5.0, ymax=20.0, zmin=5.0, zmax=20.0)
+        u = solvate.SolvatePlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=20,
+            **bounds,
+        )
+        cogs = np.array([r.atoms.center_of_geometry() for r in u.residues])
+        lo = np.array([bounds["xmin"], bounds["ymin"], bounds["zmin"]])
+        hi = np.array([bounds["xmax"], bounds["ymax"], bounds["zmax"]])
+        # Allow a small slack because tile placement can sit on the boundary.
+        assert (cogs >= lo - 1e-3).all()
+        assert (cogs <= hi + 1e-3).all()
+
+
+class TestSolvateCylinder:
+    """Tests for SolvateCylinder."""
+
+    @pytest.mark.parametrize("n", [10, 50])
+    def test_exact_n(self, n):
+        """With ``n`` specified, SolvateCylinder produces exactly n projectiles."""
+        u = solvate.SolvateCylinder(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=n,
+        )
+        assert len(u.residues) == n
+
+    def test_density(self):
+        """With ``density`` specified, the count is close to D * (2R)^2 * h.
+
+        SolvateCylinder interprets ``density`` against the cylinder's
+        bounding cuboid (``(2R)^2 * h``) and keeps a residue if any of its
+        atoms falls inside the cylinder, so the surviving count is close to
+        that quantity rather than ``D * pi * R^2 * h``.
+        """
+        box_l = 30.0
+        radius = 8.0
+        axis_min, axis_max = 0.0, box_l
+        density = 0.01
+        u = solvate.SolvateCylinder(
+            solvate.models.empty([box_l] * 3 + [90, 90, 90]),
+            solvate.models.spce(),
+            density=density,
+            radius=radius,
+            min=axis_min,
+            max=axis_max,
+        )
+        expected = density * (2 * radius) ** 2 * (axis_max - axis_min)
+        # Density-mode does not retry, so allow a generous tolerance band.
+        assert 0.5 * expected <= len(u.residues) <= 1.2 * expected
+
+    def test_resids_contiguous(self):
+        """Resids of inserted projectiles are contiguous starting at 1."""
+        n = 30
+        u = solvate.SolvateCylinder(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=n,
+        )
+        assert list(u.residues.resids) == list(range(1, n + 1))
+
+    def test_inside_cylinder(self):
+        """Every inserted molecule has at least one atom inside the cylinder.
+
+        SolvateCylinder keeps a residue when *any* of its atoms is inside, so
+        a water residue's COG can sit slightly outside the radius when only
+        an H atom is the one that lands inside.
+        """
+        radius = 10.0
+        axis_min, axis_max = 5.0, 25.0
+        u = solvate.SolvateCylinder(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=30,
+            radius=radius,
+            min=axis_min,
+            max=axis_max,
+        )
+        # Default ``dim`` is 2; cylinder is centred on the box COG (15, 15).
+        center_xy = np.array([15.0, 15.0])
+        for res in u.residues:
+            radial = np.linalg.norm(res.atoms.positions[:, :2] - center_xy, axis=1)
+            assert (radial < radius).any()
 
 
 class TestModels:
@@ -311,8 +476,6 @@ class TestModels:
             dtype=np.float32,
         )
         assert_allclose(u.atoms.atoms.positions, ref_pos)
-
-
 
 
 class TestRenumberProjectileResids:
