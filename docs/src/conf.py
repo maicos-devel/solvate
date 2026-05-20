@@ -76,7 +76,7 @@ autodoc_default_options = {
     "members": True,
     "show-inheritance": True,
 }
-autodoc_typehints = "description"
+autodoc_typehints = "none"
 
 # -- Options for HTML output -------------------------------------------------
 
