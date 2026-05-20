@@ -7,11 +7,34 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Tests for the solvate package."""
 
+import warnings
+
+import MDAnalysis as mda
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
 import solvate
+from solvate.insert import _renumber_projectile_resids
+
+
+def _make_universe(atoms_per_res, resids):
+    """Build a minimal universe with given residue layout and resids."""
+    n_atoms = sum(atoms_per_res)
+    n_res = len(atoms_per_res)
+    atom_resindex = [i for i, n in enumerate(atoms_per_res) for _ in range(n)]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        u = mda.Universe.empty(
+            n_atoms,
+            n_residues=n_res,
+            atom_resindex=atom_resindex,
+            residue_segindex=[0] * n_res,
+            trajectory=True,
+        )
+    u.add_TopologyAttr("resid", resids)
+    u.atoms.positions = np.zeros((n_atoms, 3))
+    return u
 
 
 class TestInserts:
@@ -48,6 +71,103 @@ class TestInserts:
 
     # TODO(@hejamu): def test_insert_cylinder_domain(self):
     #     """Test the domain of the inserted particles in InsertCylinder."""
+
+class TestInsertPlanar:
+    """Tests for InsertPlanar."""
+
+    @pytest.mark.parametrize("n", [1, 5, 10])
+    def test_n_atoms(self, n):
+        """InsertPlanar inserts exactly n * atoms_per_molecule atoms."""
+        u = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n,
+        )
+        assert u.atoms.n_atoms == n * 3
+
+    @pytest.mark.parametrize("n", [1, 5, 10])
+    def test_resids_empty_target(self, n):
+        """Residues are numbered 1..n when inserted into an empty box."""
+        u = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n,
+        )
+        assert list(u.residues.resids) == list(range(1, n + 1))
+
+    def test_resids_continue_from_target(self):
+        """Projectile resids continue monotonically after target resids."""
+        target = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            2,
+        )
+        u = solvate.InsertPlanar(target, solvate.models.spce(), 3)
+        assert list(u.residues.resids) == [1, 2, 3, 4, 5]
+
+
+class TestInsertSphere:
+    """Tests for InsertSphere."""
+
+    @pytest.mark.parametrize("n", [1, 5, 10])
+    def test_n_atoms(self, n):
+        """InsertSphere inserts exactly n * atoms_per_molecule atoms."""
+        u = solvate.InsertSphere(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n,
+        )
+        assert u.atoms.n_atoms == n * 3
+
+    @pytest.mark.parametrize("n", [1, 5, 10])
+    def test_resids_empty_target(self, n):
+        """Residues are numbered 1..n when inserted into an empty box."""
+        u = solvate.InsertSphere(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n,
+        )
+        assert list(u.residues.resids) == list(range(1, n + 1))
+
+    def test_resids_continue_from_target(self):
+        """Projectile resids continue monotonically after target resids."""
+        target = solvate.InsertSphere(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            2,
+        )
+        u = solvate.InsertSphere(target, solvate.models.spce(), 3)
+        assert list(u.residues.resids) == [1, 2, 3, 4, 5]
+
+
+class TestInsertCylinder:
+    """Tests for InsertCylinder.
+
+    InsertCylinder requires a non-empty target because it uses
+    target.residues.resids[-1] on the first iteration.
+    """
+
+    @pytest.mark.parametrize("n", [1, 3, 5])
+    def test_n_atoms(self, n):
+        """InsertCylinder inserts exactly n molecules into a non-empty target."""
+        target = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            1,
+        )
+        u = solvate.InsertCylinder(target, solvate.models.spce(), n)
+        assert u.atoms.n_atoms == (1 + n) * 3
+
+    @pytest.mark.parametrize("n", [1, 3, 5])
+    def test_resids_contiguous(self, n):
+        """Residues are numbered contiguously and monotonically after insertion."""
+        target = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            2,
+        )
+        u = solvate.InsertCylinder(target, solvate.models.spce(), n)
+        assert list(u.residues.resids) == list(range(1, 2 + n + 1))
 
 
 # class TestSolvate(object):
@@ -191,3 +311,46 @@ class TestModels:
             dtype=np.float32,
         )
         assert_allclose(u.atoms.atoms.positions, ref_pos)
+
+
+
+
+class TestRenumberProjectileResids:
+    """Tests for _renumber_projectile_resids."""
+
+    def test_empty_target_starts_at_one(self):
+        """With no target atoms, projectile resids start at 1."""
+        u = _make_universe([3, 3], [7, 7])
+        _renumber_projectile_resids(u, 0)
+        assert list(u.residues.resids) == [1, 2]
+
+    def test_projectile_starts_after_target_max(self):
+        """Projectile resids start at max(target resids) + 1."""
+        u = _make_universe([3, 3, 3], [5, 1, 1])
+        _renumber_projectile_resids(u, 3)
+        assert list(u.residues.resids) == [5, 6, 7]
+
+    def test_out_of_order_target_uses_max(self):
+        """Uses max() of target resids, not the last resid."""
+        # Target resids are [5, 2, 3] — max is 5, so projectile starts at 6.
+        u = _make_universe([1, 1, 1, 1], [5, 2, 3, 1])
+        _renumber_projectile_resids(u, 3)
+        assert list(u.residues.resids) == [5, 2, 3, 6]
+
+    def test_no_projectile_unchanged(self):
+        """When all atoms belong to the target, resids are not modified."""
+        u = _make_universe([3, 3], [1, 2])
+        _renumber_projectile_resids(u, 6)
+        assert list(u.residues.resids) == [1, 2]
+
+    def test_projectile_resids_contiguous(self):
+        """Multiple projectile residues are numbered contiguously."""
+        u = _make_universe([3, 3, 3, 3], [1, 99, 99, 99])
+        _renumber_projectile_resids(u, 3)
+        assert list(u.residues.resids) == [1, 2, 3, 4]
+
+    def test_returns_same_universe(self):
+        """Function modifies the universe in-place and returns it."""
+        u = _make_universe([3, 3], [1, 1])
+        result = _renumber_projectile_resids(u, 3)
+        assert result is u
