@@ -18,7 +18,7 @@ Highlights
   regions with arbitrary molecules.
 - **Fast solvation** — the ``Solvate*`` variants use spatial tiling to
   populate large boxes orders of magnitude faster than naive insertion.
-- **Specify ``n`` or density** — ask for an exact number of molecules or
+- **Specify** ``n`` **or density** — ask for an exact number of molecules or
   a target number density; solvate figures out the rest.
 - **Built-in water models** — SPC/E, TIP3P, and TIP4P/ε are included; custom
   3- and 4-site models are one function call away.
