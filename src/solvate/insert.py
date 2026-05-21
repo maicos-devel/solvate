@@ -20,6 +20,33 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def _renumber_projectile_resids(
+    SolvatedUniverse: mda.Universe, nAtomsTarget: int
+) -> mda.Universe:
+    """Renumber residues after the target so resids are contiguous and monotonic.
+
+    Target residues (the first `nAtomsTarget` atoms) keep their original resids.
+    Residues from the projectile atoms are renumbered starting at
+    ``target.resids[-1] + 1`` (or ``1`` when the target is empty), so the
+    returned universe has no gaps or duplicates among the projectile resids.
+    """
+    n_total_res = len(SolvatedUniverse.residues)
+    if nAtomsTarget == 0:
+        start = 1
+        n_target_res = 0
+    else:
+        target = SolvatedUniverse.atoms[:nAtomsTarget]
+        # Use max() rather than [-1] so we don't collide with an
+        # out-of-order target resid (e.g. user-supplied [5, 2, 3]).
+        start = target.residues.resids.max() + 1
+        n_target_res = len(target.residues)
+    n_proj_res = n_total_res - n_target_res
+    if n_proj_res > 0:
+        projectile = SolvatedUniverse.atoms[nAtomsTarget:]
+        projectile.residues.resids = np.arange(start, start + n_proj_res)
+    return SolvatedUniverse
+
+
 def tile_universe(
     universe: mda.Universe,
     n_x: int,
@@ -219,7 +246,7 @@ def SolvateCylinder(
         logger.info(
             f" {SolvatedUniverse.atoms.n_atoms - nAtomsTarget} projectiles inserted"
         )
-        return SolvatedUniverse
+        return _renumber_projectile_resids(SolvatedUniverse, nAtomsTarget)
     if missingProjectiles > 0:
         logger.info("Missing", missingProjectiles, "Projectiles.")
         logger.info("Adjusting fudge factor and trying again.")
@@ -254,26 +281,11 @@ def SolvateCylinder(
             )
         ]
         SolvatedUniverse = mda.Merge(SolvatedUniverse.atoms - ToBeRemoved.atoms)
-        nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
-        TargetAtoms = SolvatedUniverse.atoms[:nAtomsTarget]
-        logger.info(
-            len(TargetAtoms.residues),
-            len(nonTargetAtoms.residues),
-            len(SolvatedUniverse.residues),
-        )
-        SolvatedUniverse.residues.resids = np.concatenate(
-            [
-                TargetAtoms.residues.resids,
-                np.arange(
-                    len(TargetAtoms.residues) + 1, len(SolvatedUniverse.residues) + 1
-                ),
-            ]
-        )
         SolvatedUniverse.dimensions = dimensionsTarget
         logger.info("Final number of atoms:", SolvatedUniverse.atoms.n_atoms)
-        return SolvatedUniverse
+        return _renumber_projectile_resids(SolvatedUniverse, nAtomsTarget)
     logger.info("All projectiles inserted correctly")
-    return SolvatedUniverse
+    return _renumber_projectile_resids(SolvatedUniverse, nAtomsTarget)
 
 
 def SolvatePlanar(
@@ -388,18 +400,21 @@ def SolvatePlanar(
         logger.info(f"Solvation factor: {solvate_factor}")
         logger.info(f"Best tiling is {x}x{x}x{x}.")
 
-        return InsertPlanar(
-            TargetUniverse,
-            ProjectileUniverse,
-            n,
-            xmin,
-            ymin,
-            zmin,
-            xmax,
-            ymax,
-            zmax,
-            distance,
-            tries,
+        return _renumber_projectile_resids(
+            InsertPlanar(
+                TargetUniverse,
+                ProjectileUniverse,
+                n,
+                xmin,
+                ymin,
+                zmin,
+                xmax,
+                ymax,
+                zmax,
+                distance,
+                tries,
+            ),
+            nAtomsTarget,
         )
     if n / (x**3) < SOLVATION_THRESHOLD and x > 2:
         x -= 1
@@ -478,7 +493,7 @@ def SolvatePlanar(
         logger.info(
             f" {SolvatedUniverse.atoms.n_atoms - nAtomsTarget} projectiles inserted"
         )
-        return SolvatedUniverse
+        return _renumber_projectile_resids(SolvatedUniverse, nAtomsTarget)
     if missingProjectiles > 0:
         logger.info("Missing", missingProjectiles, "Projectiles.")
         logger.info("Adjusting fudge factor and trying again.")
@@ -513,26 +528,11 @@ def SolvatePlanar(
             )
         ]
         SolvatedUniverse = mda.Merge(SolvatedUniverse.atoms - ToBeRemoved.atoms)
-        nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
-        TargetAtoms = SolvatedUniverse.atoms[:nAtomsTarget]
-        logger.info(
-            len(TargetAtoms.residues),
-            len(nonTargetAtoms.residues),
-            len(SolvatedUniverse.residues),
-        )
-        SolvatedUniverse.residues.resids = np.concatenate(
-            [
-                TargetAtoms.residues.resids,
-                np.arange(
-                    len(TargetAtoms.residues) + 1, len(SolvatedUniverse.residues) + 1
-                ),
-            ]
-        )
         SolvatedUniverse.dimensions = dimensionsTarget
         logger.info("Final number of atoms:", SolvatedUniverse.atoms.n_atoms)
-        return SolvatedUniverse
+        return _renumber_projectile_resids(SolvatedUniverse, nAtomsTarget)
     logger.info("All projectiles inserted correctly")
-    return SolvatedUniverse
+    return _renumber_projectile_resids(SolvatedUniverse, nAtomsTarget)
 
 
 def InsertPlanar(
@@ -593,6 +593,7 @@ def InsertPlanar(
     SolvatePlanar : Fast variant for many projectiles.
     InsertCylinder, InsertSphere
     """
+    nAtomsTargetOriginal = TargetUniverse.atoms.n_atoms
     InsertionDomain = [xmin, ymin, zmin, xmax, ymax, zmax]
     for i in np.arange(3):
         if InsertionDomain[i + 3] is None:
@@ -637,11 +638,7 @@ def InsertPlanar(
                 maybe you are trying to insert to many particles? Aborting."
             )
 
-        projectile.residues.resids = (
-            projectile.residues.resids + target.residues.resids[-1]
-        )
-
-    return TargetUniverse
+    return _renumber_projectile_resids(TargetUniverse, nAtomsTargetOriginal)
 
 
 def InsertCylinder(
@@ -708,6 +705,7 @@ def InsertCylinder(
     SolvateCylinder : Fast variant for many projectiles.
     InsertPlanar, InsertSphere
     """
+    nAtomsTargetOriginal = TargetUniverse.atoms.n_atoms
     if max is None:
         max = TargetUniverse.dimensions[dim]
 
@@ -754,11 +752,7 @@ def InsertCylinder(
                 maybe you are trying to insert too many particles? Aborting."
             )
 
-        projectile.residues.resids = (
-            projectile.residues.resids + target.residues.resids[-1]
-        )
-
-    return TargetUniverse
+    return _renumber_projectile_resids(TargetUniverse, nAtomsTargetOriginal)
 
 
 def InsertSphere(
@@ -832,6 +826,7 @@ def InsertSphere(
         z = r * cosPhi
         return np.array([x, y, z])
 
+    nAtomsTargetOriginal = TargetUniverse.atoms.n_atoms
     nAtomsProjectile = ProjectileUniverse.atoms.n_atoms
     dimensionsTarget = TargetUniverse.dimensions.copy()
 
@@ -877,8 +872,5 @@ def InsertSphere(
                 "Error: No suitable position found, \
                 maybe you are trying to insert to many particles? Aborting."
             )
-        projectile.residues.resids = (
-            projectile.residues.resids + target.residues.resids[-1]
-        )
 
-    return TargetUniverse
+    return _renumber_projectile_resids(TargetUniverse, nAtomsTargetOriginal)

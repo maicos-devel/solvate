@@ -7,69 +7,397 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Tests for the solvate package."""
 
+import warnings
+
+import MDAnalysis as mda
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
 import solvate
+from solvate.insert import _renumber_projectile_resids
 
 
-class TestInserts:
-    """Test the insertion code."""
-
-    @pytest.mark.parametrize("n_water", [1, 10, 100])
-    def test_insert_planar_n_water(self, n_water):
-        """Test the number of inserted particles in InsertPlanar."""
-        emptyUniverse = solvate.models.empty([20, 20, 20, 90, 90, 90])
-        testParticle = solvate.models.spce()
-        u = solvate.InsertSphere(emptyUniverse, testParticle, n_water)
-        assert u.atoms.n_atoms == n_water * 3
-
-    # TODO(@hejamu): def test_insert_planar_density(self):
-    #     """Test the density of the inserted particles in InsertPlanar."""
-
-    # TODO(@hejamu): def test_insert_sphere_n_water(self):
-    #     """Test the number of inserted particles in InsertSphere."""
-
-    # TODO(@hejamu): def test_insert_sphere_density(self):
-    #     """Test the density of the inserted particles in InsertSphere."""
-
-    # TODO(@hejamu): def test_insert_cylinder_n_water(self):
-    #     """Test the number of inserted particles in InsertCylinder."""
-
-    # TODO(@hejamu): def test_insert_cylinder_density(self):
-    #     """Test the density of the inserted particles in InsertCylinder."""
-
-    # TODO(@hejamu): def test_insert_planar_domain(self):
-    #     """Test the domain of the inserted particles in InsertPlanar."""
-
-    # TODO(@hejamu): def test_insert_sphere_domain(self):
-    #     """Test the domain of the inserted particles in InsertSphere."""
-
-    # TODO(@hejamu): def test_insert_cylinder_domain(self):
-    #     """Test the domain of the inserted particles in InsertCylinder."""
+def _make_universe(atoms_per_res, resids):
+    """Build a minimal universe with given residue layout and resids."""
+    n_atoms = sum(atoms_per_res)
+    n_res = len(atoms_per_res)
+    atom_resindex = [i for i, n in enumerate(atoms_per_res) for _ in range(n)]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        u = mda.Universe.empty(
+            n_atoms,
+            n_residues=n_res,
+            atom_resindex=atom_resindex,
+            residue_segindex=[0] * n_res,
+            trajectory=True,
+        )
+    u.add_TopologyAttr("resid", resids)
+    u.atoms.positions = np.zeros((n_atoms, 3))
+    return u
 
 
-# class TestSolvate(object):
-#     """Test the solvation code."""
+class TestInsertPlanar:
+    """Tests for InsertPlanar."""
 
-# TODO(@hejamu): test_solvate_planar_n_water(self):
-#     """Test the solvation of a planar system."""
+    @pytest.mark.parametrize("n", [1, 5, 10])
+    def test_n_atoms(self, n):
+        """InsertPlanar inserts exactly n * atoms_per_molecule atoms."""
+        u = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n,
+        )
+        assert u.atoms.n_atoms == n * 3
 
-# TODO(@hejamu): test_solvate_sphere_n_water(self):
-#     """Test the solvation of a spherical system."""
+    @pytest.mark.parametrize("n", [1, 5, 10])
+    def test_resids_empty_target(self, n):
+        """Residues are numbered 1..n when inserted into an empty box."""
+        u = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n,
+        )
+        assert list(u.residues.resids) == list(range(1, n + 1))
 
-# TODO(@hejamu): test_solvate_cylinder_n_water(self):
-#     """Test the solvation of a cylindrical system."""
+    def test_resids_continue_from_target(self):
+        """Projectile resids continue monotonically after target resids."""
+        target = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            2,
+        )
+        u = solvate.InsertPlanar(target, solvate.models.spce(), 3)
+        assert list(u.residues.resids) == [1, 2, 3, 4, 5]
 
-# TODO(@hejamu): test_solvate_planar_density(self):
-#     """Test the density of the solvated system."""
+    def test_non_monotonic_target_resids(self):
+        """Projectile resids start at max(target.resids) + 1, even if disordered."""
+        target = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            3,
+        )
+        target.residues.resids = np.array([5, 2, 3])
+        u = solvate.InsertPlanar(target, solvate.models.spce(), 2)
+        assert list(u.residues.resids) == [5, 2, 3, 6, 7]
 
-# TODO(@hejamu): test_solvate_sphere_density(self):
-#     """Test the density of the solvated system."""
+    def test_default_domain_is_target_box(self):
+        """Without explicit bounds, COGs lie inside the target's box."""
+        box_l = 30.0
+        u = solvate.InsertPlanar(
+            solvate.models.empty([box_l] * 3 + [90, 90, 90]),
+            solvate.models.spce(),
+            20,
+        )
+        cogs = np.array([r.atoms.center_of_geometry() for r in u.residues])
+        assert (cogs >= 0).all()
+        assert (cogs <= box_l).all()
 
-# TODO(@hejamu): test_solvate_cylinder_density(self):
-#     """Test the density of the solvated system."""
+    def test_explicit_bounds(self):
+        """Explicit xmin/xmax etc. constrain inserted molecules' COGs."""
+        bounds = dict(xmin=5.0, xmax=15.0, ymin=8.0, ymax=22.0, zmin=10.0, zmax=25.0)
+        u = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=20,
+            **bounds,
+        )
+        cogs = np.array([r.atoms.center_of_geometry() for r in u.residues])
+        lo = np.array([bounds["xmin"], bounds["ymin"], bounds["zmin"]])
+        hi = np.array([bounds["xmax"], bounds["ymax"], bounds["zmax"]])
+        assert (cogs >= lo).all()
+        assert (cogs <= hi).all()
+
+
+class TestInsertSphere:
+    """Tests for InsertSphere."""
+
+    @pytest.mark.parametrize("n", [1, 5, 10])
+    def test_n_atoms(self, n):
+        """InsertSphere inserts exactly n * atoms_per_molecule atoms."""
+        u = solvate.InsertSphere(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n,
+        )
+        assert u.atoms.n_atoms == n * 3
+
+    @pytest.mark.parametrize("n", [1, 5, 10])
+    def test_resids_empty_target(self, n):
+        """Residues are numbered 1..n when inserted into an empty box."""
+        u = solvate.InsertSphere(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n,
+        )
+        assert list(u.residues.resids) == list(range(1, n + 1))
+
+    def test_resids_continue_from_target(self):
+        """Projectile resids continue monotonically after target resids."""
+        target = solvate.InsertSphere(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            2,
+        )
+        u = solvate.InsertSphere(target, solvate.models.spce(), 3)
+        assert list(u.residues.resids) == [1, 2, 3, 4, 5]
+
+    def test_non_monotonic_target_resids(self):
+        """Projectile resids start at max(target.resids) + 1, even if disordered."""
+        target = solvate.InsertSphere(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            3,
+        )
+        target.residues.resids = np.array([5, 2, 3])
+        u = solvate.InsertSphere(target, solvate.models.spce(), 2)
+        assert list(u.residues.resids) == [5, 2, 3, 6, 7]
+
+    def test_inside_sphere(self):
+        """COGs of inserted molecules lie within ``radius`` of ``pos``."""
+        radius = 10.0
+        center = np.array([15.0, 15.0, 15.0])
+        u = solvate.InsertSphere(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=20,
+            pos=center.copy(),
+            radius=radius,
+        )
+        cogs = np.array([r.atoms.center_of_geometry() for r in u.residues])
+        distances = np.linalg.norm(cogs - center, axis=1)
+        # Small tolerance for the float32 positions used internally.
+        assert (distances <= radius + 1e-3).all()
+
+
+class TestInsertCylinder:
+    """Tests for InsertCylinder.
+
+    InsertCylinder requires a non-empty target because it uses
+    target.residues.resids[-1] on the first iteration.
+    """
+
+    @pytest.mark.parametrize("n", [1, 3, 5])
+    def test_n_atoms(self, n):
+        """InsertCylinder inserts exactly n molecules into a non-empty target."""
+        target = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            1,
+        )
+        u = solvate.InsertCylinder(target, solvate.models.spce(), n)
+        assert u.atoms.n_atoms == (1 + n) * 3
+
+    @pytest.mark.parametrize("n", [1, 3, 5])
+    def test_resids_contiguous(self, n):
+        """Residues are numbered contiguously and monotonically after insertion."""
+        target = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            2,
+        )
+        u = solvate.InsertCylinder(target, solvate.models.spce(), n)
+        assert list(u.residues.resids) == list(range(1, 2 + n + 1))
+
+    def test_non_monotonic_target_resids(self):
+        """Projectile resids start at max(target.resids) + 1, even if disordered."""
+        target = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            3,
+        )
+        target.residues.resids = np.array([5, 2, 3])
+        u = solvate.InsertCylinder(target, solvate.models.spce(), 2)
+        assert list(u.residues.resids) == [5, 2, 3, 6, 7]
+
+    @pytest.mark.parametrize("dim", [0, 1, 2])
+    def test_inside_cylinder(self, dim):
+        """Inserted COGs sit inside the cylinder (radial and axial bounds)."""
+        target = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            1,
+        )
+        radius = 8.0
+        axis_min, axis_max = 5.0, 25.0
+        center = np.array([15.0, 15.0, 15.0])
+        u = solvate.InsertCylinder(
+            target,
+            solvate.models.spce(),
+            n=10,
+            pos=center.copy(),
+            radius=radius,
+            min=axis_min,
+            max=axis_max,
+            dim=dim,
+        )
+        # Skip the target molecule
+        projectile_residues = u.residues[1:]
+        other_axes = [i for i in range(3) if i != dim]
+        for res in projectile_residues:
+            cog = res.atoms.center_of_geometry()
+            assert axis_min <= cog[dim] <= axis_max
+            radial = np.linalg.norm(cog[other_axes] - center[other_axes])
+            assert radial <= radius + 1e-3
+
+
+class TestSolvatePlanar:
+    """Tests for SolvatePlanar."""
+
+    @pytest.mark.parametrize("n", [10, 50])
+    def test_exact_n(self, n):
+        """With ``n`` specified, SolvatePlanar produces exactly n molecules."""
+        u = solvate.SolvatePlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=n,
+        )
+        assert len(u.residues) == n
+        assert u.atoms.n_atoms == n * 3
+
+    def test_density(self):
+        """With ``density`` specified, the result is close to density * V."""
+        box_l = 30.0
+        density = 0.01  # molecules / Å^3
+        u = solvate.SolvatePlanar(
+            solvate.models.empty([box_l] * 3 + [90, 90, 90]),
+            solvate.models.spce(),
+            density=density,
+        )
+        expected = density * box_l**3
+        # Tile rounding can over- or undershoot expected by a few percent;
+        # the target is empty so no overlap pruning happens.
+        assert 0.9 * expected <= len(u.residues) <= 1.1 * expected
+
+    def test_resids_contiguous(self):
+        """Resids of inserted projectiles are contiguous starting at 1."""
+        n = 30
+        u = solvate.SolvatePlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=n,
+        )
+        assert list(u.residues.resids) == list(range(1, n + 1))
+
+    def test_resids_continue_from_target(self):
+        """Projectile resids continue after target resids."""
+        target = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            2,
+        )
+        n = 20
+        u = solvate.SolvatePlanar(target, solvate.models.spce(), n=n)
+        assert list(u.residues.resids) == list(range(1, 2 + n + 1))
+
+    def test_non_monotonic_target_resids(self):
+        """Projectile resids start at max(target.resids) + 1, even if disordered."""
+        target = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            3,
+        )
+        target.residues.resids = np.array([5, 2, 3])
+        u = solvate.SolvatePlanar(target, solvate.models.spce(), n=2)
+        assert list(u.residues.resids) == [5, 2, 3, 6, 7]
+
+    def test_inside_box(self):
+        """All inserted molecules land inside the requested box."""
+        bounds = dict(xmin=5.0, xmax=20.0, ymin=5.0, ymax=20.0, zmin=5.0, zmax=20.0)
+        u = solvate.SolvatePlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=20,
+            **bounds,
+        )
+        cogs = np.array([r.atoms.center_of_geometry() for r in u.residues])
+        lo = np.array([bounds["xmin"], bounds["ymin"], bounds["zmin"]])
+        hi = np.array([bounds["xmax"], bounds["ymax"], bounds["zmax"]])
+        # Allow a small slack because tile placement can sit on the boundary.
+        assert (cogs >= lo - 1e-3).all()
+        assert (cogs <= hi + 1e-3).all()
+
+
+class TestSolvateCylinder:
+    """Tests for SolvateCylinder."""
+
+    @pytest.mark.parametrize("n", [10, 50])
+    def test_exact_n(self, n):
+        """With ``n`` specified, SolvateCylinder produces exactly n projectiles."""
+        u = solvate.SolvateCylinder(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=n,
+        )
+        assert len(u.residues) == n
+
+    def test_density(self):
+        """With ``density`` specified, the count is close to D * (2R)^2 * h.
+
+        SolvateCylinder interprets ``density`` against the cylinder's
+        bounding cuboid (``(2R)^2 * h``) and keeps a residue if any of its
+        atoms falls inside the cylinder, so the surviving count is close to
+        that quantity rather than ``D * pi * R^2 * h``.
+        """
+        box_l = 30.0
+        radius = 8.0
+        axis_min, axis_max = 0.0, box_l
+        density = 0.01
+        u = solvate.SolvateCylinder(
+            solvate.models.empty([box_l] * 3 + [90, 90, 90]),
+            solvate.models.spce(),
+            density=density,
+            radius=radius,
+            min=axis_min,
+            max=axis_max,
+        )
+        expected = density * (2 * radius) ** 2 * (axis_max - axis_min)
+        # Density-mode does not retry, so allow a generous tolerance band.
+        assert 0.5 * expected <= len(u.residues) <= 1.2 * expected
+
+    def test_resids_contiguous(self):
+        """Resids of inserted projectiles are contiguous starting at 1."""
+        n = 30
+        u = solvate.SolvateCylinder(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=n,
+        )
+        assert list(u.residues.resids) == list(range(1, n + 1))
+
+    def test_non_monotonic_target_resids(self):
+        """Projectile resids start at max(target.resids) + 1, even if disordered."""
+        target = solvate.InsertPlanar(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            3,
+        )
+        target.residues.resids = np.array([5, 2, 3])
+        u = solvate.SolvateCylinder(target, solvate.models.spce(), n=2)
+        assert list(u.residues.resids) == [5, 2, 3, 6, 7]
+
+    def test_inside_cylinder(self):
+        """Every inserted molecule has at least one atom inside the cylinder.
+
+        SolvateCylinder keeps a residue when *any* of its atoms is inside, so
+        a water residue's COG can sit slightly outside the radius when only
+        an H atom is the one that lands inside.
+        """
+        radius = 10.0
+        axis_min, axis_max = 5.0, 25.0
+        u = solvate.SolvateCylinder(
+            solvate.models.empty([30, 30, 30, 90, 90, 90]),
+            solvate.models.spce(),
+            n=30,
+            radius=radius,
+            min=axis_min,
+            max=axis_max,
+        )
+        # Default ``dim`` is 2; cylinder is centred on the box COG (15, 15).
+        center_xy = np.array([15.0, 15.0])
+        for res in u.residues:
+            radial = np.linalg.norm(res.atoms.positions[:, :2] - center_xy, axis=1)
+            assert (radial < radius).any()
 
 
 class TestModels:
@@ -191,3 +519,44 @@ class TestModels:
             dtype=np.float32,
         )
         assert_allclose(u.atoms.atoms.positions, ref_pos)
+
+
+class TestRenumberProjectileResids:
+    """Tests for _renumber_projectile_resids."""
+
+    def test_empty_target_starts_at_one(self):
+        """With no target atoms, projectile resids start at 1."""
+        u = _make_universe([3, 3], [7, 7])
+        _renumber_projectile_resids(u, 0)
+        assert list(u.residues.resids) == [1, 2]
+
+    def test_projectile_starts_after_target_max(self):
+        """Projectile resids start at max(target resids) + 1."""
+        u = _make_universe([3, 3, 3], [5, 1, 1])
+        _renumber_projectile_resids(u, 3)
+        assert list(u.residues.resids) == [5, 6, 7]
+
+    def test_out_of_order_target_uses_max(self):
+        """Uses max() of target resids, not the last resid."""
+        # Target resids are [5, 2, 3] — max is 5, so projectile starts at 6.
+        u = _make_universe([1, 1, 1, 1], [5, 2, 3, 1])
+        _renumber_projectile_resids(u, 3)
+        assert list(u.residues.resids) == [5, 2, 3, 6]
+
+    def test_no_projectile_unchanged(self):
+        """When all atoms belong to the target, resids are not modified."""
+        u = _make_universe([3, 3], [1, 2])
+        _renumber_projectile_resids(u, 6)
+        assert list(u.residues.resids) == [1, 2]
+
+    def test_projectile_resids_contiguous(self):
+        """Multiple projectile residues are numbered contiguously."""
+        u = _make_universe([3, 3, 3, 3], [1, 99, 99, 99])
+        _renumber_projectile_resids(u, 3)
+        assert list(u.residues.resids) == [1, 2, 3, 4]
+
+    def test_returns_same_universe(self):
+        """Function modifies the universe in-place and returns it."""
+        u = _make_universe([3, 3], [1, 1])
+        result = _renumber_projectile_resids(u, 3)
+        assert result is u
