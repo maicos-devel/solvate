@@ -38,7 +38,7 @@ def _renumber_projectile_resids(
         target = SolvatedUniverse.atoms[:nAtomsTarget]
         # Use max() rather than [-1] so we don't collide with an
         # out-of-order target resid (e.g. user-supplied [5, 2, 3]).
-        start = int(target.residues.resids.max()) + 1
+        start = target.residues.resids.max() + 1
         n_target_res = len(target.residues)
     n_proj_res = n_total_res - n_target_res
     if n_proj_res > 0:
@@ -593,6 +593,7 @@ def InsertPlanar(
     SolvatePlanar : Fast variant for many projectiles.
     InsertCylinder, InsertSphere
     """
+    nAtomsTargetOriginal = TargetUniverse.atoms.n_atoms
     InsertionDomain = [xmin, ymin, zmin, xmax, ymax, zmax]
     for i in np.arange(3):
         if InsertionDomain[i + 3] is None:
@@ -637,11 +638,7 @@ def InsertPlanar(
                 maybe you are trying to insert to many particles? Aborting."
             )
 
-        projectile.residues.resids = (
-            projectile.residues.resids + target.residues.resids[-1]
-        )
-
-    return TargetUniverse
+    return _renumber_projectile_resids(TargetUniverse, nAtomsTargetOriginal)
 
 
 def InsertCylinder(
@@ -708,6 +705,7 @@ def InsertCylinder(
     SolvateCylinder : Fast variant for many projectiles.
     InsertPlanar, InsertSphere
     """
+    nAtomsTargetOriginal = TargetUniverse.atoms.n_atoms
     if max is None:
         max = TargetUniverse.dimensions[dim]
 
@@ -754,11 +752,7 @@ def InsertCylinder(
                 maybe you are trying to insert too many particles? Aborting."
             )
 
-        projectile.residues.resids = (
-            projectile.residues.resids + target.residues.resids[-1]
-        )
-
-    return TargetUniverse
+    return _renumber_projectile_resids(TargetUniverse, nAtomsTargetOriginal)
 
 
 def InsertSphere(
@@ -832,6 +826,7 @@ def InsertSphere(
         z = r * cosPhi
         return np.array([x, y, z])
 
+    nAtomsTargetOriginal = TargetUniverse.atoms.n_atoms
     nAtomsProjectile = ProjectileUniverse.atoms.n_atoms
     dimensionsTarget = TargetUniverse.dimensions.copy()
 
@@ -877,8 +872,5 @@ def InsertSphere(
                 "Error: No suitable position found, \
                 maybe you are trying to insert to many particles? Aborting."
             )
-        projectile.residues.resids = (
-            projectile.residues.resids + target.residues.resids[-1]
-        )
 
-    return TargetUniverse
+    return _renumber_projectile_resids(TargetUniverse, nAtomsTargetOriginal)
