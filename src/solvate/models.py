@@ -42,7 +42,22 @@ def _three_site_molecule(theta: float) -> tuple:
 
 
 def empty(dimensions: np.ndarray) -> mda.Universe:
-    """Create an empty Universe with the given dimensions."""
+    """Create an empty :class:`~MDAnalysis.core.universe.Universe`.
+
+    Useful as a target for the ``Insert*`` and ``Solvate*`` functions when
+    building a system from scratch.
+
+    Parameters
+    ----------
+    dimensions : array_like of shape (6,)
+        Simulation cell as ``[a, b, c, alpha, beta, gamma]`` with lengths in
+        Å and angles in degrees.
+
+    Returns
+    -------
+    MDAnalysis.core.universe.Universe
+        An empty universe with no atoms and the given simulation cell.
+    """
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
@@ -68,7 +83,40 @@ def type_a(
     mass_O: float = 15.999,
     mass_H: float = 1.00784,
 ) -> mda.Universe:
-    """Returns a 3-site water model with given parameters."""
+    """Build a single 3-site water molecule (type *a*).
+
+    The oxygen sits at the origin; the two hydrogens lie in the xy plane at
+    distance ``l_1`` from the oxygen and at an angle ``theta`` to each
+    other. Topology, masses, and partial charges are populated so the
+    resulting universe is ready to be replicated by an ``Insert*`` or
+    ``Solvate*`` call.
+
+    Parameters
+    ----------
+    l_1 : float
+        O–H bond length, in Å.
+    q_O : float
+        Partial charge on the oxygen, in units of the elementary charge.
+    q_H : float
+        Partial charge on each hydrogen, in units of the elementary charge.
+    theta : float
+        H–O–H angle, in radians. Must lie in ``(0, pi]``.
+    mass_O : float, default 15.999
+        Oxygen mass, in u.
+    mass_H : float, default 1.00784
+        Hydrogen mass, in u.
+
+    Returns
+    -------
+    MDAnalysis.core.universe.Universe
+        A single-residue universe with three atoms (``OW``, ``HW1``,
+        ``HW2``) and the appropriate bond and angle topology.
+
+    See Also
+    --------
+    spce, tip3p : Pre-parameterised 3-site water models.
+    type_c : 4-site variant with an additional M site.
+    """
     model = mda.Universe.empty(
         3, n_residues=1, atom_resindex=[0, 0, 0], residue_segindex=[0], trajectory=True
     )
@@ -102,7 +150,40 @@ def type_c(
     mass_O: float = 15.999,
     mass_H: float = 1.00784,
 ) -> mda.Universe:
-    """Returns a 4-site water model with given parameters."""
+    """Build a single 4-site water molecule (type *c*).
+
+    Like :func:`type_a` but with an additional massless M site placed on the
+    H–O–H angle bisector at distance ``l_2`` from the oxygen. The negative
+    charge sits on the M site rather than the oxygen.
+
+    Parameters
+    ----------
+    l_1 : float
+        O–H bond length, in Å.
+    l_2 : float
+        O–M distance along the H–O–H bisector, in Å.
+    q_M : float
+        Partial charge on the M site, in units of the elementary charge.
+    q_H : float
+        Partial charge on each hydrogen, in units of the elementary charge.
+    theta : float
+        H–O–H angle, in radians. Must lie in ``(0, pi]``.
+    mass_O : float, default 15.999
+        Oxygen mass, in u.
+    mass_H : float, default 1.00784
+        Hydrogen mass, in u.
+
+    Returns
+    -------
+    MDAnalysis.core.universe.Universe
+        A single-residue universe with four atoms (``OW``, ``HW1``, ``HW2``,
+        ``MW``), bonds, and angle topology.
+
+    See Also
+    --------
+    tip4p_epsilon : Pre-parameterised 4-site water model.
+    type_a : 3-site variant.
+    """
     model = mda.Universe.empty(
         4,
         n_residues=1,
@@ -135,7 +216,20 @@ def type_c(
 
 
 def spce() -> mda.Universe:
-    """Returns the SPC/E water model."""
+    """Return a single SPC/E water molecule.
+
+    Uses an O–H bond length of 1.0 Å, an H–O–H angle of 109.47°, and the
+    hydrogen partial charge ``q_H = 0.4238 e``.
+
+    Returns
+    -------
+    MDAnalysis.core.universe.Universe
+        Single-residue universe with three atoms representing SPC/E water.
+
+    See Also
+    --------
+    tip3p, tip4p_epsilon
+    """
     l_1 = 1
 
     q_H = 0.4238
@@ -146,7 +240,21 @@ def spce() -> mda.Universe:
 
 
 def tip4p_epsilon() -> mda.Universe:
-    """Returns the TIP4P/ε water model."""
+    """Return a single TIP4P/ε water molecule.
+
+    Uses an O–H bond length of 0.9572 Å, an O–M distance of 0.105 Å, an
+    H–O–H angle of 104.52°, and a hydrogen partial charge of
+    ``q_H = 0.527 e`` (the negative charge sits on the M site).
+
+    Returns
+    -------
+    MDAnalysis.core.universe.Universe
+        Single-residue universe with four atoms representing TIP4P/ε water.
+
+    See Also
+    --------
+    spce, tip3p
+    """
     l_1 = 0.9572
     l_2 = 0.105
 
@@ -159,7 +267,20 @@ def tip4p_epsilon() -> mda.Universe:
 
 
 def tip3p():
-    """Returns the TIP3P water model."""
+    """Return a single TIP3P water molecule.
+
+    Uses an O–H bond length of 0.9572 Å, an H–O–H angle of 104.52°, and a
+    hydrogen partial charge of ``q_H = 0.417 e``.
+
+    Returns
+    -------
+    MDAnalysis.core.universe.Universe
+        Single-residue universe with three atoms representing TIP3P water.
+
+    See Also
+    --------
+    spce, tip4p_epsilon
+    """
     l_1 = 0.9572
 
     q_H = 0.417

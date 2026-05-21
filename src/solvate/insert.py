@@ -111,7 +111,62 @@ def SolvateCylinder(
     tries: int = 1000,
     fudge_factor: float = 1,
 ) -> mda.Universe:
-    """Inserts `n` projectile atoms in a cylindrical zone (fast)."""
+    """Fill a cylindrical region of a target with copies of a projectile.
+
+    Internally builds a small saturated patch of projectiles, tiles it across
+    the cylinder's bounding box, then prunes any copies that fall outside the
+    cylinder or overlap atoms in ``TargetUniverse``. For most use cases this is
+    orders of magnitude faster than :func:`InsertCylinder`.
+
+    Parameters
+    ----------
+    TargetUniverse : MDAnalysis.core.universe.Universe
+        Universe to solvate. May be empty; in that case
+        ``TargetUniverse.dimensions`` still defines the simulation cell of the
+        returned universe.
+    ProjectileUniverse : MDAnalysis.core.universe.Universe
+        Molecule that is inserted repeatedly.
+    n : int, default 1
+        Number of projectile copies to insert. Ignored when ``density`` is
+        given.
+    density : float, optional
+        Target number density of projectiles, in molecules / Å³. When set,
+        ``n`` is computed from the cylinder volume and ``n`` is ignored.
+    pos : array_like of shape (3,), optional
+        Centre of the cylinder, in Å. Defaults to the centre of geometry of
+        ``TargetUniverse`` (or the centre of its box if the target is empty).
+        The component along ``dim`` is overridden by ``min``.
+    radius : float, optional
+        Cylinder radius, in Å. Defaults to half of the smallest box edge of
+        ``TargetUniverse``.
+    min, max : float, optional
+        Lower and upper bound of the cylinder along axis ``dim``, in Å.
+        ``max`` defaults to ``TargetUniverse.dimensions[dim]``.
+    dim : {0, 1, 2}, default 2
+        Index of the axis along which the cylinder extends (0 = x, 1 = y,
+        2 = z).
+    distance : float, default 1.25
+        Minimum allowed distance (Å) between an inserted projectile and any
+        atom of the target.
+    tries : int, default 1000
+        Maximum number of random placement attempts used when building the
+        seed patch.
+    fudge_factor : float, default 1.0
+        Multiplier on the number of projectiles packed into the seed patch.
+        Increased automatically and the function recurses when too few
+        projectiles survive overlap pruning.
+
+    Returns
+    -------
+    MDAnalysis.core.universe.Universe
+        New universe containing the original target atoms followed by the
+        inserted projectile copies.
+
+    See Also
+    --------
+    InsertCylinder : Slower per-molecule variant with full placement control.
+    SolvatePlanar : Equivalent for rectangular regions.
+    """
     logger.info(f"The fudge factor is {fudge_factor}")
     if max is None:
         max = TargetUniverse.dimensions[dim]
@@ -249,7 +304,60 @@ def SolvatePlanar(
     fudge_factor: float = 1.0,
     tries: int = 1000,
 ) -> mda.Universe:
-    """Returns a rectacular box of `n` projectile atoms (fast)."""
+    """Fill a rectangular region of a target with copies of a projectile.
+
+    Internally builds a small saturated patch of projectiles, tiles it across
+    the insertion box, then prunes any copies that overlap atoms in
+    ``TargetUniverse``. This is orders of magnitude faster than
+    :func:`InsertPlanar` for large solvent counts and is the recommended way
+    to solvate a target with thousands of solvent molecules.
+
+    Parameters
+    ----------
+    TargetUniverse : MDAnalysis.core.universe.Universe
+        Universe to solvate. May be empty; ``TargetUniverse.dimensions``
+        defines the simulation cell of the returned universe.
+    ProjectileUniverse : MDAnalysis.core.universe.Universe
+        Molecule that is inserted repeatedly.
+    n : int, default 1
+        Number of projectile copies to insert. Ignored when ``density`` is
+        given.
+    density : float, optional
+        Target number density of projectiles, in molecules / Å³. When set,
+        ``n`` is computed from the volume of the insertion box and ``n`` is
+        ignored.
+    xmin, ymin, zmin : float, default 0
+        Lower bounds of the insertion box, in Å.
+    xmax, ymax, zmax : float, optional
+        Upper bounds of the insertion box, in Å. Each defaults to the
+        corresponding component of ``TargetUniverse.dimensions``.
+    distance : float, default 1.25
+        Minimum allowed distance (Å) between an inserted projectile and any
+        atom of the target. Tile copies closer than ``distance`` are removed
+        after tiling.
+    solvate_factor : int, default 100
+        Target number of projectiles in each tiled sub-box. Larger values
+        reduce the number of tiles and the cost of the per-tile saturation
+        step; smaller values reduce peak memory.
+    fudge_factor : float, default 1.0
+        Multiplier on ``solvate_factor`` controlling how aggressively the
+        seed patch is packed. Increased automatically and the function
+        recurses when too few projectiles survive overlap pruning.
+    tries : int, default 1000
+        Base number of random placement attempts used when packing the seed
+        patch (internally scaled by 1000).
+
+    Returns
+    -------
+    MDAnalysis.core.universe.Universe
+        New universe containing the original target atoms followed by the
+        inserted projectile copies.
+
+    See Also
+    --------
+    InsertPlanar : Slower per-molecule variant with full placement control.
+    SolvateCylinder : Equivalent for cylindrical regions.
+    """
     # Use no fewer than 20 atoms for solvation
     SOLVATION_THRESHOLD = 20
 
@@ -440,7 +548,51 @@ def InsertPlanar(
     distance: float = 1.25,
     tries: int = 1000,
 ) -> mda.Universe:
-    """Inserts `n` projectile atoms in a rectangular zone."""
+    """Insert ``n`` copies of a projectile into a rectangular region.
+
+    Each projectile is placed at a random position and orientation inside the
+    axis-aligned box defined by ``(xmin, ymin, zmin)`` and
+    ``(xmax, ymax, zmax)``. Up to ``tries`` placement attempts are made per
+    projectile; a :class:`RuntimeError` is raised if no overlap-free position
+    is found.
+
+    Parameters
+    ----------
+    TargetUniverse : MDAnalysis.core.universe.Universe
+        Universe to insert into. May be empty; ``TargetUniverse.dimensions``
+        then defines the simulation cell of the returned universe.
+    ProjectileUniverse : MDAnalysis.core.universe.Universe
+        Molecule that is inserted repeatedly.
+    n : int, default 1
+        Number of projectile copies to insert.
+    xmin, ymin, zmin : float, default 0
+        Lower bounds of the insertion box, in Å.
+    xmax, ymax, zmax : float, optional
+        Upper bounds of the insertion box, in Å. Each defaults to the
+        corresponding component of ``TargetUniverse.dimensions``.
+    distance : float, default 1.25
+        Minimum allowed distance (Å) between the inserted projectile and any
+        existing atom in the target.
+    tries : int, default 1000
+        Maximum number of random placement attempts per projectile.
+
+    Returns
+    -------
+    MDAnalysis.core.universe.Universe
+        New universe containing the target atoms followed by the inserted
+        projectile copies.
+
+    Raises
+    ------
+    RuntimeError
+        If no overlap-free position is found within ``tries`` attempts for a
+        given projectile.
+
+    See Also
+    --------
+    SolvatePlanar : Fast variant for many projectiles.
+    InsertCylinder, InsertSphere
+    """
     InsertionDomain = [xmin, ymin, zmin, xmax, ymax, zmax]
     for i in np.arange(3):
         if InsertionDomain[i + 3] is None:
@@ -504,7 +656,58 @@ def InsertCylinder(
     distance: float = 1.25,
     tries: int = 1000,
 ) -> mda.Universe:
-    """Inserts `n` projectile atoms in a cylindrical zone."""
+    """Insert ``n`` copies of a projectile into a cylindrical region.
+
+    Each projectile is placed at a random position and orientation inside the
+    cylinder centred at ``pos`` with radius ``radius``, extending from ``min``
+    to ``max`` along axis ``dim``. Up to ``tries`` placement attempts are
+    made per projectile; a :class:`RuntimeError` is raised if no overlap-free
+    position is found.
+
+    Parameters
+    ----------
+    TargetUniverse : MDAnalysis.core.universe.Universe
+        Universe to insert into. May be empty.
+    ProjectileUniverse : MDAnalysis.core.universe.Universe
+        Molecule that is inserted repeatedly.
+    n : int, default 1
+        Number of projectile copies to insert.
+    pos : array_like of shape (3,), optional
+        Centre of the cylinder, in Å. Defaults to the centre of geometry of
+        ``TargetUniverse`` (or the centre of its box if the target is empty).
+        The component along ``dim`` is overridden by ``min``.
+    radius : float, optional
+        Cylinder radius, in Å. Defaults to half of the smallest box edge of
+        ``TargetUniverse``.
+    min, max : float, optional
+        Lower and upper bound of the cylinder along axis ``dim``, in Å.
+        ``max`` defaults to ``TargetUniverse.dimensions[dim]``.
+    dim : {0, 1, 2}, default 2
+        Index of the axis along which the cylinder extends (0 = x, 1 = y,
+        2 = z).
+    distance : float, default 1.25
+        Minimum allowed distance (Å) between the inserted projectile and any
+        existing atom in the target.
+    tries : int, default 1000
+        Maximum number of random placement attempts per projectile.
+
+    Returns
+    -------
+    MDAnalysis.core.universe.Universe
+        New universe containing the target atoms followed by the inserted
+        projectile copies.
+
+    Raises
+    ------
+    RuntimeError
+        If no overlap-free position is found within ``tries`` attempts for a
+        given projectile.
+
+    See Also
+    --------
+    SolvateCylinder : Fast variant for many projectiles.
+    InsertPlanar, InsertSphere
+    """
     if max is None:
         max = TargetUniverse.dimensions[dim]
 
@@ -567,7 +770,49 @@ def InsertSphere(
     distance: float = 1.25,
     tries: int = 1000,
 ) -> mda.Universe:
-    """Inserts `n` projectile atoms in a spherical zone."""
+    """Insert ``n`` copies of a projectile into a spherical region.
+
+    Each projectile is placed at a uniformly random position inside the
+    sphere centred at ``pos`` with radius ``radius`` and a random
+    orientation. Up to ``tries`` placement attempts are made per projectile;
+    a :class:`RuntimeError` is raised if no overlap-free position is found.
+
+    Parameters
+    ----------
+    TargetUniverse : MDAnalysis.core.universe.Universe
+        Universe to insert into. May be empty.
+    ProjectileUniverse : MDAnalysis.core.universe.Universe
+        Molecule that is inserted repeatedly.
+    n : int, default 1
+        Number of projectile copies to insert.
+    pos : array_like of shape (3,), optional
+        Centre of the sphere, in Å. Defaults to the centre of geometry of
+        ``TargetUniverse`` (or the centre of its box if the target is empty).
+    radius : float, optional
+        Sphere radius, in Å. Defaults to half of the smallest box edge of
+        ``TargetUniverse``.
+    distance : float, default 1.25
+        Minimum allowed distance (Å) between the inserted projectile and any
+        existing atom in the target.
+    tries : int, default 1000
+        Maximum number of random placement attempts per projectile.
+
+    Returns
+    -------
+    MDAnalysis.core.universe.Universe
+        New universe containing the target atoms followed by the inserted
+        projectile copies.
+
+    Raises
+    ------
+    RuntimeError
+        If no overlap-free position is found within ``tries`` attempts for a
+        given projectile.
+
+    See Also
+    --------
+    InsertPlanar, InsertCylinder
+    """
 
     def rand_spherical(radius: float = 1.0) -> np.ndarray:
         u = np.random.rand()
