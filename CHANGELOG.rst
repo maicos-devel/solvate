@@ -13,6 +13,9 @@ The rules for solvate's CHANGELOG file:
 
 Unreleased
 ----------
+
+v0.1.0 (2026/05/26)
+-------------------
 Henrik Stooß, Philip Loche, Kira Fischer
 
 - Make projectile residues always monotonic (#19)
