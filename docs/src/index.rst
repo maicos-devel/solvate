@@ -1,6 +1,10 @@
 solvate
 =======
 
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.20395882.svg
+   :target: https://doi.org/10.5281/zenodo.20395882
+   :alt: DOI
+
 **solvate** is a lightweight Python package for quickly building initial
 structures for molecular dynamics simulations. It is built on top of
 :class:`MDAnalysis <MDAnalysis.core.universe.Universe>`, so it interoperates
@@ -48,3 +52,9 @@ A 30-second example
    get-started
    user-guide
    api
+
+Citing solvate
+--------------
+
+If you use solvate in your research, please cite it via its Zenodo record:
+`10.5281/zenodo.20395882 <https://doi.org/10.5281/zenodo.20395882>`_.
