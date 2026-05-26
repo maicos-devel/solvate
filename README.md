@@ -1,5 +1,7 @@
 # solvate: A simple tool to create solvated molecular systems in python
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20395882.svg)](https://doi.org/10.5281/zenodo.20395882)
+
 solvate is a lightweight Python package designed to quickly build initial structures of
 molecular dynamics simulations. Based on MDAnalysis, it is flexible and easy to use.
 
@@ -38,6 +40,11 @@ Also check out the [examples](https://github.com/maicos-devel/solvate/tree/main/
 
 Contributions are welcome! Please read the [contributing guidelines](CONTRIBUTING.md) for more information.
 Feel free to open issues and submit pull requests.
+
+# Citing solvate
+
+If you use solvate in your research, please cite it via its Zenodo record:
+[10.5281/zenodo.20395882](https://doi.org/10.5281/zenodo.20395882).
 
 # Similar Software
 
