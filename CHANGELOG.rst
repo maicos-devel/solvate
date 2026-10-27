@@ -13,6 +13,9 @@ The rules for solvate's CHANGELOG file:
 
 Unreleased
 ----------
+Henrik Stooß
+
+- Add Zenodo DOI badge and citation info to README and documentation (#22)
 
 v0.1.0 (2026/05/26)
 -------------------

@@ -16,10 +16,10 @@ _meta = metadata("solvate")
 __authors__ = _meta["Author"]
 
 __all__ = [
-    "InsertPlanar",
     "InsertCylinder",
+    "InsertPlanar",
     "InsertSphere",
-    "SolvatePlanar",
     "SolvateCylinder",
+    "SolvatePlanar",
     "models",
 ]

@@ -1,6 +1,10 @@
 solvate
 =======
 
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.20395882.svg
+   :target: https://doi.org/10.5281/zenodo.20395882
+   :alt: DOI
+
 **solvate** is a lightweight Python package for quickly building initial
 structures for molecular dynamics simulations. It is built on top of
 :class:`MDAnalysis <MDAnalysis.core.universe.Universe>`, so it interoperates
@@ -40,6 +44,12 @@ A 30-second example
     water_box = solvate.SolvatePlanar(box, solvate.models.spce(), density=0.033)
 
     water_box.atoms.write("water_box.pdb")
+
+Citing solvate
+--------------
+
+If you use solvate in your research, please cite it via its Zenodo record:
+`10.5281/zenodo.20395882 <https://doi.org/10.5281/zenodo.20395882>`_.
 
 .. toctree::
    :maxdepth: 2
