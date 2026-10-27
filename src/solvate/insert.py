@@ -7,8 +7,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Build universes from template molecules."""
 
+from __future__ import annotations
+
 import logging
-from typing import Optional
 
 import MDAnalysis as mda
 import numpy as np
@@ -101,11 +102,11 @@ def SolvateCylinder(
     TargetUniverse: mda.Universe,
     ProjectileUniverse: mda.Universe,
     n: int = 1,
-    density: Optional[float] = None,
-    pos: Optional[np.ndarray] = None,
-    radius: Optional[float] = None,
+    density: float | None = None,
+    pos: np.ndarray | None = None,
+    radius: float | None = None,
     min: float = 0,
-    max: Optional[float] = None,
+    max: float | None = None,
     dim: int = 2,
     distance: float = 1.25,
     tries: int = 1000,
@@ -292,13 +293,13 @@ def SolvatePlanar(
     TargetUniverse: mda.Universe,
     ProjectileUniverse: mda.Universe,
     n: int = 1,
-    density: Optional[float] = None,
+    density: float | None = None,
     xmin: int = 0,
     ymin: int = 0,
     zmin: int = 0,
-    xmax: Optional[float] = None,
-    ymax: Optional[float] = None,
-    zmax: Optional[float] = None,
+    xmax: float | None = None,
+    ymax: float | None = None,
+    zmax: float | None = None,
     distance: float = 1.25,
     solvate_factor: int = 100,
     fudge_factor: float = 1.0,
@@ -542,9 +543,9 @@ def InsertPlanar(
     xmin: int = 0,
     ymin: int = 0,
     zmin: int = 0,
-    xmax: Optional[float] = None,
-    ymax: Optional[float] = None,
-    zmax: Optional[float] = None,
+    xmax: float | None = None,
+    ymax: float | None = None,
+    zmax: float | None = None,
     distance: float = 1.25,
     tries: int = 1000,
 ) -> mda.Universe:
@@ -645,10 +646,10 @@ def InsertCylinder(
     TargetUniverse: mda.Universe,
     ProjectileUniverse: mda.Universe,
     n: int = 1,
-    pos: Optional[np.ndarray] = None,
-    radius: Optional[float] = None,
+    pos: np.ndarray | None = None,
+    radius: float | None = None,
     min: float = 0,
-    max: Optional[float] = None,
+    max: float | None = None,
     dim: int = 2,
     distance: float = 1.25,
     tries: int = 1000,
@@ -759,8 +760,8 @@ def InsertSphere(
     TargetUniverse: mda.Universe,
     ProjectileUniverse: mda.Universe,
     n: int = 1,
-    pos: Optional[np.ndarray] = None,
-    radius: Optional[float] = None,
+    pos: np.ndarray | None = None,
+    radius: float | None = None,
     distance: float = 1.25,
     tries: int = 1000,
 ) -> mda.Universe:
