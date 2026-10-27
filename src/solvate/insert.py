@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Copyright (c) 2024 Authors and contributors
 # (see the AUTHORS.rst file for the full list of names)
 #
@@ -232,24 +230,24 @@ def SolvateCylinder(
             TargetAtoms, ProjectileAtoms[atomsInside].residues.atoms
         )
     SolvatedUniverse.dimensions = dims
-    logger.info("Resulting number of atoms:", SolvatedUniverse.atoms.n_atoms)
+    logger.info(f"Resulting number of atoms: {SolvatedUniverse.atoms.n_atoms}")
     logger.info(
-        "Resulting number of projectiles:",
-        (SolvatedUniverse.atoms.n_atoms - nAtomsTarget) / nAtomsProjectile,
+        "Resulting number of projectiles: "
+        f"{(SolvatedUniverse.atoms.n_atoms - nAtomsTarget) / nAtomsProjectile}"
     )
 
     missingProjectiles = int(
         ((n * nAtomsProjectile + nAtomsTarget) - SolvatedUniverse.atoms.n_atoms)
         / nAtomsProjectile
     )
-    logger.info("Missing", missingProjectiles, "Projectiles.")
+    logger.info(f"Missing {missingProjectiles} projectiles.")
     if solvate_by_density_flag:
         logger.info(
             f" {SolvatedUniverse.atoms.n_atoms - nAtomsTarget} projectiles inserted"
         )
         return _renumber_projectile_resids(SolvatedUniverse, nAtomsTarget)
     if missingProjectiles > 0:
-        logger.info("Missing", missingProjectiles, "Projectiles.")
+        logger.info(f"Missing {missingProjectiles} projectiles.")
         logger.info("Adjusting fudge factor and trying again.")
         new_fudge_factor = fudge_factor + 0.5
         return SolvateCylinder(
@@ -269,11 +267,11 @@ def SolvateCylinder(
 
     if missingProjectiles < 0:
         nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
-        logger.info("Too many projectiles inserted:", -missingProjectiles)
+        logger.info(f"Too many projectiles inserted: {-missingProjectiles}")
         logger.info(nonTargetAtoms.n_atoms)
         logger.info(nonTargetAtoms.residues.n_residues)
         logger.info(np.unique(nonTargetAtoms.residues.resids).shape)
-        logger.info("Removing", -missingProjectiles, "randomly selected projectiles.")
+        logger.info(f"Removing {-missingProjectiles} randomly selected projectiles.")
         ToBeRemoved = nonTargetAtoms.residues[
             np.random.choice(
                 np.arange(len(nonTargetAtoms.residues)),
@@ -283,7 +281,7 @@ def SolvateCylinder(
         ]
         SolvatedUniverse = mda.Merge(SolvatedUniverse.atoms - ToBeRemoved.atoms)
         SolvatedUniverse.dimensions = dimensionsTarget
-        logger.info("Final number of atoms:", SolvatedUniverse.atoms.n_atoms)
+        logger.info(f"Final number of atoms: {SolvatedUniverse.atoms.n_atoms}")
         return _renumber_projectile_resids(SolvatedUniverse, nAtomsTarget)
     logger.info("All projectiles inserted correctly")
     return _renumber_projectile_resids(SolvatedUniverse, nAtomsTarget)
@@ -427,11 +425,10 @@ def SolvatePlanar(
 
     real_solvate_factor = np.ceil(real_solvate_factor * fudge_factor).astype(int)
 
-    logger.info("Real solvation factor is", real_solvate_factor)
+    logger.info(f"Real solvation factor is {real_solvate_factor}")
     logger.info(
-        "This results in a total of",
-        x**3 * (real_solvate_factor),
-        "projectiles in the solvate box",
+        f"This results in a total of {x**3 * real_solvate_factor} projectiles "
+        "in the solvate box"
     )
     solvate_box_dimensions = np.concatenate(
         [InsertionDomainSize / x, dimensionsTarget[3:6]]
@@ -457,8 +454,8 @@ def SolvatePlanar(
 
     nAtomsSolvate = big_solvate_box.atoms.n_atoms
 
-    logger.info("Target atoms:", nAtomsTarget)
-    logger.info("Projectile atoms:", nAtomsSolvate)
+    logger.info(f"Target atoms: {nAtomsTarget}")
+    logger.info(f"Projectile atoms: {nAtomsSolvate}")
 
     if nAtomsTarget == 0:
         SolvatedUniverse = big_solvate_box
@@ -479,12 +476,13 @@ def SolvatePlanar(
         # if touching_atoms.n_atoms / nAtomsProjectile:
 
         logger.info(
-            "Removing touching projectiles:", touching_atoms.n_atoms / nAtomsProjectile
+            "Removing touching projectiles: "
+            f"{touching_atoms.n_atoms / nAtomsProjectile}"
         )
         SolvatedUniverse = mda.Merge(SolvatedUniverse.atoms - touching_atoms)
         SolvatedUniverse.dimensions = dimensionsTarget
-    logger.info("Resulting number of atoms:", SolvatedUniverse.atoms.n_atoms)
-    logger.info("Expected number of atoms:", n * nAtomsProjectile + nAtomsTarget)
+    logger.info(f"Resulting number of atoms: {SolvatedUniverse.atoms.n_atoms}")
+    logger.info(f"Expected number of atoms: {n * nAtomsProjectile + nAtomsTarget}")
     missingProjectiles = int(
         ((n * nAtomsProjectile + nAtomsTarget) - SolvatedUniverse.atoms.n_atoms)
         / nAtomsProjectile
@@ -496,7 +494,7 @@ def SolvatePlanar(
         )
         return _renumber_projectile_resids(SolvatedUniverse, nAtomsTarget)
     if missingProjectiles > 0:
-        logger.info("Missing", missingProjectiles, "Projectiles.")
+        logger.info(f"Missing {missingProjectiles} projectiles.")
         logger.info("Adjusting fudge factor and trying again.")
         return SolvatePlanar(
             TargetUniverse,
@@ -516,11 +514,11 @@ def SolvatePlanar(
         )
     if missingProjectiles < 0:
         nonTargetAtoms = SolvatedUniverse.atoms[nAtomsTarget:]
-        logger.info("Too many projectiles inserted:", -missingProjectiles)
+        logger.info(f"Too many projectiles inserted: {-missingProjectiles}")
         logger.info(nonTargetAtoms.n_atoms)
         logger.info(nonTargetAtoms.residues.n_residues)
         logger.info(np.unique(nonTargetAtoms.residues.resids).shape)
-        logger.info("Removing", -missingProjectiles, "randomly selected projectiles.")
+        logger.info(f"Removing {-missingProjectiles} randomly selected projectiles.")
         ToBeRemoved = nonTargetAtoms.residues[
             np.random.choice(
                 np.arange(len(nonTargetAtoms.residues)),
@@ -530,7 +528,7 @@ def SolvatePlanar(
         ]
         SolvatedUniverse = mda.Merge(SolvatedUniverse.atoms - ToBeRemoved.atoms)
         SolvatedUniverse.dimensions = dimensionsTarget
-        logger.info("Final number of atoms:", SolvatedUniverse.atoms.n_atoms)
+        logger.info(f"Final number of atoms: {SolvatedUniverse.atoms.n_atoms}")
         return _renumber_projectile_resids(SolvatedUniverse, nAtomsTarget)
     logger.info("All projectiles inserted correctly")
     return _renumber_projectile_resids(SolvatedUniverse, nAtomsTarget)
