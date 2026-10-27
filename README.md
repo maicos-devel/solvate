@@ -32,7 +32,7 @@ pip install .
 
 # Usage
 
-See the [documentation](https://maicos-devel.github.io/solvate/) for detailed usage instructions and examples.
+See the [documentation](https://mda-solvate.readthedocs.io) for detailed usage instructions and examples.
 
 Also check out the [examples](https://github.com/maicos-devel/solvate/tree/main/examples) directory for practical use cases.
 

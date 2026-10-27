@@ -45,6 +45,12 @@ A 30-second example
 
     water_box.atoms.write("water_box.pdb")
 
+Citing solvate
+--------------
+
+If you use solvate in your research, please cite it via its Zenodo record:
+`10.5281/zenodo.20395882 <https://doi.org/10.5281/zenodo.20395882>`_.
+
 .. toctree::
    :maxdepth: 2
    :caption: User documentation
@@ -52,9 +58,3 @@ A 30-second example
    get-started
    user-guide
    api
-
-Citing solvate
---------------
-
-If you use solvate in your research, please cite it via its Zenodo record:
-`10.5281/zenodo.20395882 <https://doi.org/10.5281/zenodo.20395882>`_.
