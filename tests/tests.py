@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Copyright (c) 2024 Authors and contributors
 # (see the AUTHORS.rst file for the full list of names)
 #
@@ -95,7 +93,14 @@ class TestInsertPlanar:
 
     def test_explicit_bounds(self):
         """Explicit xmin/xmax etc. constrain inserted molecules' COGs."""
-        bounds = dict(xmin=5.0, xmax=15.0, ymin=8.0, ymax=22.0, zmin=10.0, zmax=25.0)
+        bounds = {
+            "xmin": 5.0,
+            "xmax": 15.0,
+            "ymin": 8.0,
+            "ymax": 22.0,
+            "zmin": 10.0,
+            "zmax": 25.0,
+        }
         u = solvate.InsertPlanar(
             solvate.models.empty([30, 30, 30, 90, 90, 90]),
             solvate.models.spce(),
@@ -303,7 +308,14 @@ class TestSolvatePlanar:
 
     def test_inside_box(self):
         """All inserted molecules land inside the requested box."""
-        bounds = dict(xmin=5.0, xmax=20.0, ymin=5.0, ymax=20.0, zmin=5.0, zmax=20.0)
+        bounds = {
+            "xmin": 5.0,
+            "xmax": 20.0,
+            "ymin": 5.0,
+            "ymax": 20.0,
+            "zmin": 5.0,
+            "zmax": 20.0,
+        }
         u = solvate.SolvatePlanar(
             solvate.models.empty([30, 30, 30, 90, 90, 90]),
             solvate.models.spce(),
